@@ -11,12 +11,15 @@ import org.ruru.ffta2editor.EquipmentController.ItemCell;
 import org.ruru.ffta2editor.JobController.AbilitySetCell;
 import org.ruru.ffta2editor.JobController.JobCell;
 import org.ruru.ffta2editor.TextController.StringPropertyCell;
+import org.ruru.ffta2editor.TextController.StringWithId;
+import org.ruru.ffta2editor.TextController.StringWithIdCell;
 import org.ruru.ffta2editor.model.ability.AbilityData;
 import org.ruru.ffta2editor.model.ability.SPAbilityData;
 import org.ruru.ffta2editor.model.character.CharacterData;
 import org.ruru.ffta2editor.model.formation.FormationData;
 import org.ruru.ffta2editor.model.formation.FormationUnit;
 import org.ruru.ffta2editor.model.item.EquipmentData;
+import org.ruru.ffta2editor.model.item.ItemTable;
 import org.ruru.ffta2editor.model.job.AbilitySet;
 import org.ruru.ffta2editor.model.job.JobData;
 import org.ruru.ffta2editor.utility.ByteChangeListener;
@@ -100,7 +103,7 @@ public class FormationController {
     @FXML ListView<FormationData> formationList;
     @FXML ListView<FormationUnit> formationUnitList;
 
-    @FXML ComboBox<StringProperty> law;
+    @FXML ComboBox<StringWithId> law;
     @FXML TextField partyLimit;
     @FXML TextField _0x02;
     @FXML TextField _0x04;
@@ -171,7 +174,7 @@ public class FormationController {
     // Unit
     @FXML AutoCompleteComboBox<CharacterData> character;
     @FXML AutoCompleteComboBox<JobData> job;
-    @FXML ComboBox<StringProperty> name;
+    @FXML ComboBox<StringWithId> name;
     @FXML TextField minLevel;
     @FXML TextField maxLevel;
     @FXML TextField unit_0x06;
@@ -209,12 +212,12 @@ public class FormationController {
 
     @FXML TextField unit_0x32;
     @FXML TextField unit_0x33;
-    @FXML TextField lootLevel1;
-    @FXML TextField lootLevel2;
-    @FXML TextField lootLevel3;
-    @FXML TextField lootLevel4;
-    @FXML TextField lootConsumable;
-    @FXML TextField lootGil;
+    @FXML AutoCompleteComboBox<ItemTable> lootLevel1;
+    @FXML AutoCompleteComboBox<ItemTable> lootLevel2;
+    @FXML AutoCompleteComboBox<ItemTable> lootLevel3;
+    @FXML AutoCompleteComboBox<ItemTable> lootLevel4;
+    @FXML AutoCompleteComboBox<ItemTable> lootConsumable;
+    @FXML AutoCompleteComboBox<ItemTable> lootGil;
     @FXML TextField faction;
     @FXML TextField unit_0x3b;
 
@@ -251,6 +254,13 @@ public class FormationController {
                 primaryAbility4.setData(abilityList);
                 primaryAbility5.setData(abilityList);
                 primaryAbility6.setData(abilityList);
+                
+                primaryAbility1.getSelectionModel().select(0);
+                primaryAbility2.getSelectionModel().select(0);
+                primaryAbility3.getSelectionModel().select(0);
+                primaryAbility4.getSelectionModel().select(0);
+                primaryAbility5.getSelectionModel().select(0);
+                primaryAbility6.getSelectionModel().select(0);
             }
         });
         secondaryAbilitySet.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
@@ -261,6 +271,11 @@ public class FormationController {
                 secondaryAbility2.setData(abilityList);
                 secondaryAbility3.setData(abilityList);
                 secondaryAbility4.setData(abilityList);
+                
+                secondaryAbility1.getSelectionModel().select(0);
+                secondaryAbility2.getSelectionModel().select(0);
+                secondaryAbility3.getSelectionModel().select(0);
+                secondaryAbility4.getSelectionModel().select(0);
             }
         });
 
@@ -346,12 +361,6 @@ public class FormationController {
         unit_0x0d.textProperty().addListener(new ByteChangeListener(unit_0x0d));
         unit_0x32.textProperty().addListener(new ByteChangeListener(unit_0x32));
         unit_0x33.textProperty().addListener(new ByteChangeListener(unit_0x33));
-        lootLevel1.textProperty().addListener(new ByteChangeListener(lootLevel1));
-        lootLevel2.textProperty().addListener(new ByteChangeListener(lootLevel2));
-        lootLevel3.textProperty().addListener(new ByteChangeListener(lootLevel3));
-        lootLevel4.textProperty().addListener(new ByteChangeListener(lootLevel4));
-        lootConsumable.textProperty().addListener(new ByteChangeListener(lootConsumable));
-        lootGil.textProperty().addListener(new ByteChangeListener(lootGil));
         faction.textProperty().addListener(new ByteChangeListener(faction));
         unit_0x3b.textProperty().addListener(new ByteChangeListener(unit_0x3b));
     }
@@ -529,15 +538,15 @@ public class FormationController {
 
         unit_0x32.textProperty().unbindBidirectional(unitProperty.getValue()._0x32);
         unit_0x33.textProperty().unbindBidirectional(unitProperty.getValue()._0x33);
-        lootLevel1.textProperty().unbindBidirectional(unitProperty.getValue().lootLevel1);
-        lootLevel2.textProperty().unbindBidirectional(unitProperty.getValue().lootLevel2);
-        lootLevel3.textProperty().unbindBidirectional(unitProperty.getValue().lootLevel3);
-        lootLevel4.textProperty().unbindBidirectional(unitProperty.getValue().lootLevel4);
-        lootConsumable.textProperty().unbindBidirectional(unitProperty.getValue().lootConsumable);
-        lootGil.textProperty().unbindBidirectional(unitProperty.getValue().lootGil);
         faction.textProperty().unbindBidirectional(unitProperty.getValue().faction);
         unit_0x3b.textProperty().unbindBidirectional(unitProperty.getValue()._0x3b);
-
+        
+        lootLevel1.valueProperty().unbindBidirectional(unitProperty.getValue().lootLevel1);
+        lootLevel2.valueProperty().unbindBidirectional(unitProperty.getValue().lootLevel2);
+        lootLevel3.valueProperty().unbindBidirectional(unitProperty.getValue().lootLevel3);
+        lootLevel4.valueProperty().unbindBidirectional(unitProperty.getValue().lootLevel4);
+        lootConsumable.valueProperty().unbindBidirectional(unitProperty.getValue().lootConsumable);
+        lootGil.valueProperty().unbindBidirectional(unitProperty.getValue().lootGil);
         primaryAbility1.valueProperty().unbindBidirectional(unitProperty.getValue().primaryAbility1);
         primaryAbility2.valueProperty().unbindBidirectional(unitProperty.getValue().primaryAbility2);
         primaryAbility3.valueProperty().unbindBidirectional(unitProperty.getValue().primaryAbility3);
@@ -587,15 +596,15 @@ public class FormationController {
 
         Bindings.bindBidirectional(unit_0x32.textProperty(), unitProperty.getValue()._0x32, unsignedByteConverter);
         Bindings.bindBidirectional(unit_0x33.textProperty(), unitProperty.getValue()._0x33, unsignedByteConverter);
-        Bindings.bindBidirectional(lootLevel1.textProperty(), unitProperty.getValue().lootLevel1, unsignedByteConverter);
-        Bindings.bindBidirectional(lootLevel2.textProperty(), unitProperty.getValue().lootLevel2, unsignedByteConverter);
-        Bindings.bindBidirectional(lootLevel3.textProperty(), unitProperty.getValue().lootLevel3, unsignedByteConverter);
-        Bindings.bindBidirectional(lootLevel4.textProperty(), unitProperty.getValue().lootLevel4, unsignedByteConverter);
-        Bindings.bindBidirectional(lootConsumable.textProperty(), unitProperty.getValue().lootConsumable, unsignedByteConverter);
-        Bindings.bindBidirectional(lootGil.textProperty(), unitProperty.getValue().lootGil, unsignedByteConverter);
         Bindings.bindBidirectional(faction.textProperty(), unitProperty.getValue().faction, unsignedByteConverter);
         Bindings.bindBidirectional(unit_0x3b.textProperty(), unitProperty.getValue()._0x3b, unsignedByteConverter);
 
+        lootLevel1.valueProperty().bindBidirectional(unitProperty.getValue().lootLevel1);
+        lootLevel2.valueProperty().bindBidirectional(unitProperty.getValue().lootLevel2);
+        lootLevel3.valueProperty().bindBidirectional(unitProperty.getValue().lootLevel3);
+        lootLevel4.valueProperty().bindBidirectional(unitProperty.getValue().lootLevel4);
+        lootConsumable.valueProperty().bindBidirectional(unitProperty.getValue().lootConsumable);
+        lootGil.valueProperty().bindBidirectional(unitProperty.getValue().lootGil);
         primaryAbility1.valueProperty().bindBidirectional(unitProperty.getValue().primaryAbility1);
         primaryAbility2.valueProperty().bindBidirectional(unitProperty.getValue().primaryAbility2);
         primaryAbility3.valueProperty().bindBidirectional(unitProperty.getValue().primaryAbility3);
@@ -692,8 +701,8 @@ public class FormationController {
             job.setButtonCell(new JobCell());
         
             name.setItems(App.characterNames);
-            name.setButtonCell(new StringPropertyCell());
-            name.setCellFactory(x -> new StringPropertyCell());
+            name.setButtonCell(new StringWithIdCell());
+            name.setCellFactory(x -> new StringWithIdCell());
             
             equipment1.setData(App.equipmentList);
             equipment1.setButtonCell(new ItemCell<>());
@@ -716,8 +725,15 @@ public class FormationController {
             equipment5.setCellFactory(x -> new ItemCell<>());
         
             law.setItems(App.lawNames);
-            law.setButtonCell(new StringPropertyCell());
-            law.setCellFactory(x -> new StringPropertyCell());
+            law.setButtonCell(new StringWithIdCell());
+            law.setCellFactory(x -> new StringWithIdCell());
+
+            lootLevel1.setData(App.itemTableList);
+            lootLevel2.setData(App.itemTableList);
+            lootLevel3.setData(App.itemTableList);
+            lootLevel4.setData(App.itemTableList);
+            lootConsumable.setData(App.itemTableList);
+            lootGil.setData(App.itemTableList);
         
             secondaryAbilitySet.setData(App.abilitySetList);
             secondaryAbilitySet.setCellFactory(x -> new AbilitySetCell());

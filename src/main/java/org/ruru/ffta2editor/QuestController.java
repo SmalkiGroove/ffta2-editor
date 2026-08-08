@@ -11,6 +11,8 @@ import org.ruru.ffta2editor.EquipmentController.ItemCell;
 import org.ruru.ffta2editor.FormationController.FormationCell;
 import org.ruru.ffta2editor.JobController.JobCell;
 import org.ruru.ffta2editor.TextController.StringPropertyCell;
+import org.ruru.ffta2editor.TextController.StringWithId;
+import org.ruru.ffta2editor.TextController.StringWithIdCell;
 import org.ruru.ffta2editor.model.ability.AbilityData;
 import org.ruru.ffta2editor.model.formation.FormationData;
 import org.ruru.ffta2editor.model.item.ItemData;
@@ -89,7 +91,7 @@ public class QuestController {
     @FXML AutoCompleteComboBox<ItemData> itemReward2;
     @FXML AutoCompleteComboBox<ItemData> itemReward3;
     @FXML AutoCompleteComboBox<ItemData> itemReward4;
-    @FXML ComboBox<StringProperty> questLocation;
+    @FXML ComboBox<StringWithId> questLocation;
     @FXML AutoCompleteComboBox<JobData> recommendedDispatch;
 
     // Short
@@ -98,7 +100,7 @@ public class QuestController {
     @FXML TextField unknownRequirementIndex;
     @FXML TextField battlefield;
     @FXML TextField gilReward;
-    @FXML TextField _0x58;
+    @FXML TextField itemReward4Flag;
 
     // Byte
     @FXML TextField type;
@@ -210,7 +212,7 @@ public class QuestController {
         unknownRequirementIndex.textProperty().addListener(new ShortChangeListener(unknownRequirementIndex));
         battlefield.textProperty().addListener(new ShortChangeListener(battlefield));
         gilReward.textProperty().addListener(new ShortChangeListener(gilReward));
-        _0x58.textProperty().addListener(new ShortChangeListener(_0x58));
+        itemReward4Flag.textProperty().addListener(new ShortChangeListener(itemReward4Flag));
 
         type.textProperty().addListener(new ByteChangeListener(type));
         questGroup.textProperty().addListener(new ByteChangeListener(questGroup));
@@ -315,7 +317,7 @@ public class QuestController {
         unknownRequirementIndex.textProperty().unbindBidirectional(questProperty.getValue().data.unknownRequirementIndex);
         battlefield.textProperty().unbindBidirectional(questProperty.getValue().data.battlefield);
         gilReward.textProperty().unbindBidirectional(questProperty.getValue().data.gilReward);
-        _0x58.textProperty().unbindBidirectional(questProperty.getValue().data._0x58);
+        itemReward4Flag.textProperty().unbindBidirectional(questProperty.getValue().data.itemReward4Flag);
 
         type.textProperty().unbindBidirectional(questProperty.getValue().data.type);
         questGroup.textProperty().unbindBidirectional(questProperty.getValue().data.questGroup);
@@ -431,7 +433,7 @@ public class QuestController {
             {bind(questLocation.valueProperty());}
             @Override
             protected Byte computeValue() {
-                return (byte)App.locationNames.indexOf(questLocation.valueProperty().getValue());
+                return (byte)questLocation.valueProperty().getValue().id();
             }
 
         });
@@ -441,7 +443,7 @@ public class QuestController {
         Bindings.bindBidirectional(unknownRequirementIndex.textProperty(), questProperty.getValue().data.unknownRequirementIndex, unsignedShortConverter);
         Bindings.bindBidirectional(battlefield.textProperty(), questProperty.getValue().data.battlefield, unsignedShortConverter);
         Bindings.bindBidirectional(gilReward.textProperty(), questProperty.getValue().data.gilReward, unsignedShortConverter);
-        Bindings.bindBidirectional(_0x58.textProperty(), questProperty.getValue().data._0x58, unsignedShortConverter);
+        Bindings.bindBidirectional(itemReward4Flag.textProperty(), questProperty.getValue().data.itemReward4Flag, unsignedShortConverter);
 
         StringConverter<Byte> unsignedByteConverter = new ByteStringConverter();
         Bindings.bindBidirectional(type.textProperty(), questProperty.getValue().data.type, unsignedByteConverter);
@@ -580,7 +582,7 @@ public class QuestController {
                     Quest quest = new Quest(questInfoBytes, questDataBytes, i);
                     questDataList.add(quest);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, String.format("Failed to load Quest %d \"%s\"", i, App.questNames.size() > i ? App.questNames.get(i).getValue() : ""));
+                    logger.log(Level.SEVERE, String.format("Failed to load Quest %d \"%s\"", i, App.questNames.size() > i ? App.questNames.get(i).string().getValue() : ""));
                     throw e;
                 }
             }
@@ -641,8 +643,8 @@ public class QuestController {
             recommendedDispatch.setButtonCell(new JobCell());
 
             questLocation.setItems(App.locationNames);
-            questLocation.setCellFactory(x -> new StringPropertyCell());
-            questLocation.setButtonCell(new StringPropertyCell());
+            questLocation.setCellFactory(x -> new StringWithIdCell());
+            questLocation.setButtonCell(new StringWithIdCell());
         }
     }
 

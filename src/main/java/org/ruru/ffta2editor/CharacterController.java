@@ -12,6 +12,8 @@ import org.ruru.ffta2editor.JobController.JobSpriteCell;
 import org.ruru.ffta2editor.SpritesController.FaceCell;
 import org.ruru.ffta2editor.SpritesController.TopSpriteCell;
 import org.ruru.ffta2editor.TextController.StringPropertyCell;
+import org.ruru.ffta2editor.TextController.StringWithId;
+import org.ruru.ffta2editor.TextController.StringWithIdCell;
 import org.ruru.ffta2editor.model.character.CharacterData;
 import org.ruru.ffta2editor.model.job.JobData;
 import org.ruru.ffta2editor.model.job.JobGender;
@@ -64,17 +66,17 @@ public class CharacterController {
     @FXML ListView<CharacterData> characterList;
 
 
-    @FXML ComboBox<StringProperty> name;
+    @FXML ComboBox<StringWithId> name;
     @FXML TextField dialogueRole;
     @FXML AutoCompleteComboBox<JobGender> gender;
     @FXML AutoCompleteComboBox<JobData> defaultJob;
     
     // Short
-    @FXML ComboBox<StringProperty> jobName;
-    @FXML ComboBox<StringProperty> jobDescription;
+    @FXML ComboBox<StringWithId> jobName;
+    @FXML ComboBox<StringWithId> jobDescription;
 
     // Byte
-    @FXML TextField _0x13;
+    @FXML TextField voice;
     @FXML TextField _0x1a;
     @FXML TextField _0x1b;
 
@@ -154,7 +156,7 @@ public class CharacterController {
         //jobDescription.textProperty().addListener(new ShortChangeListener(jobDescription));
 
         dialogueRole.textProperty().addListener(new ByteChangeListener(dialogueRole));
-        _0x13.textProperty().addListener(new ByteChangeListener(_0x13));
+        voice.textProperty().addListener(new ByteChangeListener(voice));
         _0x1a.textProperty().addListener(new ByteChangeListener(_0x1a));
         _0x1b.textProperty().addListener(new ByteChangeListener(_0x1b));
     }
@@ -166,7 +168,7 @@ public class CharacterController {
         //jobDescription.textProperty().unbindBidirectional(characterProperty.getValue().jobDescription);
 
         dialogueRole.textProperty().unbindBidirectional(characterProperty.getValue().dialogueRole);
-        _0x13.textProperty().unbindBidirectional(characterProperty.getValue()._0x13);
+        voice.textProperty().unbindBidirectional(characterProperty.getValue().voice);
         _0x1a.textProperty().unbindBidirectional(characterProperty.getValue()._0x1a);
         _0x1b.textProperty().unbindBidirectional(characterProperty.getValue()._0x1b);
 
@@ -195,7 +197,7 @@ public class CharacterController {
         
         StringConverter<Byte> unsignedByteConverter = new ByteStringConverter();
         Bindings.bindBidirectional(dialogueRole.textProperty(), characterProperty.getValue().dialogueRole, unsignedByteConverter);
-        Bindings.bindBidirectional(_0x13.textProperty(), characterProperty.getValue()._0x13, unsignedByteConverter);
+        Bindings.bindBidirectional(voice.textProperty(), characterProperty.getValue().voice, unsignedByteConverter);
         Bindings.bindBidirectional(_0x1a.textProperty(), characterProperty.getValue()._0x1a, unsignedByteConverter);
         Bindings.bindBidirectional(_0x1b.textProperty(), characterProperty.getValue()._0x1b, unsignedByteConverter);
 
@@ -311,16 +313,16 @@ public class CharacterController {
             defaultJob.setCellFactory(x -> new JobCell());
 
             name.setItems(App.characterNames);
-            name.setButtonCell(new StringPropertyCell());
-            name.setCellFactory(x -> new StringPropertyCell());
+            name.setButtonCell(new StringWithIdCell());
+            name.setCellFactory(x -> new StringWithIdCell());
 
             jobName.setItems(App.jobNames);
-            jobName.setButtonCell(new StringPropertyCell());
-            jobName.setCellFactory(x -> new StringPropertyCell());
+            jobName.setButtonCell(new StringWithIdCell());
+            jobName.setCellFactory(x -> new StringWithIdCell());
 
             jobDescription.setItems(App.jobDescriptions);
-            jobDescription.setButtonCell(new StringPropertyCell());
-            jobDescription.setCellFactory(x -> new StringPropertyCell());
+            jobDescription.setButtonCell(new StringWithIdCell());
+            jobDescription.setCellFactory(x -> new StringWithIdCell());
             
             unitSprite.setButtonCell(new JobSpriteCell(0, 0, 2));
             unitSprite.setCellFactory(x -> new JobSpriteCell(0, 0, 2));

@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import org.ruru.ffta2editor.App;
+import org.ruru.ffta2editor.TextController.StringWithId;
 import org.ruru.ffta2editor.model.ability.ActiveAbilityData;
 
 import javafx.beans.property.ObjectProperty;
@@ -13,18 +14,17 @@ import javafx.beans.property.SimpleStringProperty;
 public class ConsumableData extends ItemData {
     public ObjectProperty<Short> buy = new SimpleObjectProperty<>();
     public ObjectProperty<Short> sell = new SimpleObjectProperty<>();
-    public ObjectProperty<ActiveAbilityData> ability = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> _0x6 = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> _0x7 = new SimpleObjectProperty<>();
+    public ObjectProperty<Short> _0x4 = new SimpleObjectProperty<>();
+    public ObjectProperty<Short> storyProgress = new SimpleObjectProperty<>();
 
     public ConsumableData(ByteBuffer bytes, int id) {
         if (id < App.itemNames.size()) {
-            this.name = App.itemNames.get(id);
+            this.name = App.itemNames.get(id).string();
         } else {
             this.name = new SimpleStringProperty("");
         }
         if (id < App.itemDescriptions.size()) {
-            this.description = App.itemDescriptions.get(id);
+            this.description = App.itemDescriptions.get(id).string();
         } else {
             this.description = new SimpleStringProperty("\\var2:00\\\\end\\");
         }
@@ -32,31 +32,29 @@ public class ConsumableData extends ItemData {
 
         buy.set(bytes.getShort());
         sell.set(bytes.getShort());
-        ability.set(App.activeAbilityList.get(Short.toUnsignedInt(bytes.getShort())));
-        _0x6.set(bytes.get());
-        _0x7.set(bytes.get());
+        _0x4.set(bytes.getShort());
+        storyProgress.set(bytes.getShort());
     }
 
     public ConsumableData(String name, int id) {
         if (id < App.itemNames.size()) {
-            this.name = App.itemNames.get(id);
+            this.name = App.itemNames.get(id).string();
         } else {
             this.name = new SimpleStringProperty(name);
-            App.itemNames.add(this.name);
+            App.itemNames.add(new StringWithId(id, this.name));
         }
         if (id < App.itemDescriptions.size()) {
-            this.description = App.itemDescriptions.get(id);
+            this.description = App.itemDescriptions.get(id).string();
         } else {
             this.description = new SimpleStringProperty("\\var2:00\\\\end\\");
-            App.itemDescriptions.add(this.description);
+            App.itemDescriptions.add(new StringWithId(id, this.description));
         }
         this.id = id;
 
         buy.set((short)0);
         sell.set((short)0);
-        ability.set(App.activeAbilityList.get(0));
-        _0x6.set((byte)0);
-        _0x7.set((byte)0);
+        _0x4.set((short)0);
+        storyProgress.set((short)0);
     }
 
     public byte[] toBytes() {
@@ -64,9 +62,8 @@ public class ConsumableData extends ItemData {
 
         buffer.putShort(buy.getValue());
         buffer.putShort(sell.getValue());
-        buffer.putShort((short)ability.getValue().id);
-        buffer.put(_0x6.getValue());
-        buffer.put(_0x7.getValue());
+        buffer.putShort(_0x4.getValue());
+        buffer.putShort(storyProgress.getValue());
 
         return buffer.array();
     }

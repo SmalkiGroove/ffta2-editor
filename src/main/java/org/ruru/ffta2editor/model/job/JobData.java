@@ -3,9 +3,11 @@ package org.ruru.ffta2editor.model.job;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.BitSet;
+import java.util.logging.Logger;
 
 import org.ruru.ffta2editor.App;
 import org.ruru.ffta2editor.PatchesController;
+import org.ruru.ffta2editor.TextController.StringWithId;
 import org.ruru.ffta2editor.model.Race;
 import org.ruru.ffta2editor.model.topSprite.TopSprite;
 import org.ruru.ffta2editor.model.unitFace.UnitFace;
@@ -17,6 +19,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 public class JobData {
+    private static Logger logger = Logger.getLogger("org.ruru.ffta2editor");
     
     //public String name;
     public StringProperty name;
@@ -34,7 +37,7 @@ public class JobData {
     public SimpleObjectProperty<Byte> enemyPalette = new SimpleObjectProperty<>();
     public SimpleObjectProperty<Race> race = new SimpleObjectProperty<>();
     public SimpleObjectProperty<JobMoveType> moveType = new SimpleObjectProperty<>();
-    public SimpleObjectProperty<Byte> movablePlaces = new SimpleObjectProperty<>();
+    public SimpleObjectProperty<JobMovablePlaces> movablePlaces = new SimpleObjectProperty<>();
 
     
     public SimpleObjectProperty<Byte> move = new SimpleObjectProperty<>();
@@ -68,10 +71,11 @@ public class JobData {
     public SimpleObjectProperty<Byte> resilience = new SimpleObjectProperty<>();
 
     public SimpleObjectProperty<AbilitySet> abilitySet = new SimpleObjectProperty<>();
+    public SimpleObjectProperty<Byte> _0x2f = new SimpleObjectProperty<>();
     
     public SimpleObjectProperty<Byte> unarmedBonus = new SimpleObjectProperty<>();
     public SimpleObjectProperty<Byte> raceSomethingMaybe = new SimpleObjectProperty<>();
-    public SimpleObjectProperty<Byte> _0x32 = new SimpleObjectProperty<>(); // Possibly a short along with raceSomethingMaybe?
+    public SimpleObjectProperty<Byte> _0x32 = new SimpleObjectProperty<>(); // Possibly a short along with raceSomethingMaybe?. Prevents "Controllable Monster" target type if value is 2. 2 == is giant unit
     public SimpleObjectProperty<JobGender> gender = new SimpleObjectProperty<>();
     public SimpleObjectProperty<Byte> _0x34 = new SimpleObjectProperty<>();
     public SimpleObjectProperty<Byte> _0x35 = new SimpleObjectProperty<>();
@@ -95,10 +99,10 @@ public class JobData {
         public SimpleBooleanProperty propertyBit1 = new SimpleBooleanProperty();
         public SimpleBooleanProperty canChangeJobs = new SimpleBooleanProperty();
         public SimpleBooleanProperty isUndead = new SimpleBooleanProperty();
-        public SimpleBooleanProperty propertyBit4 = new SimpleBooleanProperty();
+        public SimpleBooleanProperty propertyBit4 = new SimpleBooleanProperty(); // Can't be summoned from reserve if true?
         public SimpleBooleanProperty propertyBit5 = new SimpleBooleanProperty();
         public SimpleBooleanProperty canAlwaysUseItems = new SimpleBooleanProperty();
-        public SimpleBooleanProperty propertyBit7 = new SimpleBooleanProperty();
+        public SimpleBooleanProperty cannotAttack = new SimpleBooleanProperty();
 
         public PropertyFlags() {
             flags = new BitSet(1*8);
@@ -117,7 +121,7 @@ public class JobData {
             propertyBit4.setValue(flags.get(4));
             propertyBit5.setValue(flags.get(5));
             canAlwaysUseItems.setValue(flags.get(6));
-            propertyBit7.setValue(flags.get(7));
+            cannotAttack.setValue(flags.get(7));
         }
 
         public byte[] toBytes() {
@@ -128,7 +132,7 @@ public class JobData {
             flags.set(4, propertyBit4.getValue());
             flags.set(5, propertyBit5.getValue());
             flags.set(6, canAlwaysUseItems.getValue());
-            flags.set(7, propertyBit7.getValue());
+            flags.set(7, cannotAttack.getValue());
 
             ByteBuffer newBytes = ByteBuffer.allocate(length);
             newBytes.put(flags.toByteArray());
@@ -289,12 +293,12 @@ public class JobData {
 
     public JobData(ByteBuffer bytes, int id) {
         if (id < App.jobNames.size()) {
-            this.name = App.jobNames.get(id);
+            this.name = App.jobNames.get(id).string();
         } else {
             this.name = new SimpleStringProperty("");
         }
         if (id < App.jobDescriptions.size()) {
-            this.description = App.jobDescriptions.get(id);
+            this.description = App.jobDescriptions.get(id).string();
         } else {
             this.description = new SimpleStringProperty("\\var2:00\\\\end\\");
         }
@@ -319,7 +323,7 @@ public class JobData {
         enemyPalette.set(bytes.get());
         race.set(Race.fromInteger(bytes.get()));
         moveType.set(JobMoveType.fromInteger(bytes.get()));
-        movablePlaces.set(bytes.get());
+        movablePlaces.set(JobMovablePlaces.fromInteger(bytes.get()));
 
         move.set(bytes.get());
         jump.set(bytes.get());
@@ -351,7 +355,17 @@ public class JobData {
         _0x2c.set(bytes.get());
         resilience.set(bytes.get());
 
-        abilitySet.set(App.abilitySetList.get(Short.toUnsignedInt(bytes.getShort())));
+        int abilitySetIndex = Byte.toUnsignedInt(bytes.get());
+        if (abilitySetIndex < App.abilitySetList.size()) {
+            abilitySet.set(App.abilitySetList.get(abilitySetIndex));
+        } else {
+            String warningMessage = String.format("Job %d (%s): Ability Set %d not found. Defaulting to 0", this.id, this.name.get(), abilitySetIndex);
+            logger.warning(warningMessage);
+            App.loadWarningList.add(warningMessage);
+            abilitySet.set(App.abilitySetList.get(0));
+        }
+
+        _0x2f.set(bytes.get()); // TODO: Create GUI field
 
         unarmedBonus.set(bytes.get());
         raceSomethingMaybe.set(bytes.get());
@@ -387,16 +401,16 @@ public class JobData {
 
     public JobData(String name, int id) {
         if (id < App.jobNames.size()) {
-            this.name = App.jobNames.get(id);
+            this.name = App.jobNames.get(id).string();
         } else {
             this.name = new SimpleStringProperty(name);
-            App.jobNames.add(this.name);
+            App.jobNames.add(new StringWithId(id, this.name));
         }
         if (id < App.jobDescriptions.size()) {
-            this.description = App.jobDescriptions.get(id);
+            this.description = App.jobDescriptions.get(id).string();
         } else {
             this.description = new SimpleStringProperty("\\var2:00\\\\end\\");
-            App.jobDescriptions.add(this.description);
+            App.jobDescriptions.add(new StringWithId(id, this.description));
         }
         this.id = id;
 
@@ -413,9 +427,9 @@ public class JobData {
 
         unitPalette.set((byte)0);
         enemyPalette.set((byte)0);
-        race.set(Race.fromInteger((byte)0));
-        moveType.set(JobMoveType.fromInteger((byte)0));
-        movablePlaces.set((byte)0);
+        race.set(Race.fromInteger(0));
+        moveType.set(JobMoveType.fromInteger(0));
+        movablePlaces.set(JobMovablePlaces.fromInteger(0));
 
         move.set((byte)0);
         jump.set((byte)0);
@@ -433,14 +447,14 @@ public class JobData {
         magickGrowth.set((byte)0);
         resistanceBase.set((byte)0);
         resistanceGrowth.set((byte)0);
-        fireResistance.set(JobElementalResistance.fromInteger((byte)1));
-        airResistance.set(JobElementalResistance.fromInteger((byte)1));
-        earthResistance.set(JobElementalResistance.fromInteger((byte)1));
-        waterResistance.set(JobElementalResistance.fromInteger((byte)1));
-        iceResistance.set(JobElementalResistance.fromInteger((byte)1));
-        electricityResistance.set(JobElementalResistance.fromInteger((byte)1));
-        holyResistance.set(JobElementalResistance.fromInteger((byte)1));
-        darkResistance.set(JobElementalResistance.fromInteger((byte)1));
+        fireResistance.set(JobElementalResistance.fromInteger(1));
+        airResistance.set(JobElementalResistance.fromInteger(1));
+        earthResistance.set(JobElementalResistance.fromInteger(1));
+        waterResistance.set(JobElementalResistance.fromInteger(1));
+        iceResistance.set(JobElementalResistance.fromInteger(1));
+        electricityResistance.set(JobElementalResistance.fromInteger(1));
+        holyResistance.set(JobElementalResistance.fromInteger(1));
+        darkResistance.set(JobElementalResistance.fromInteger(1));
         evasion.set((byte)100);
         _0x2a.set((byte)0);
         _0x2b.set((byte)0);
@@ -494,7 +508,7 @@ public class JobData {
         buffer.put(enemyPalette.getValue());
         buffer.put(race.getValue().value);
         buffer.put(moveType.getValue().value);
-        buffer.put(movablePlaces.getValue());
+        buffer.put(movablePlaces.getValue().value);
         buffer.put(move.getValue());
         buffer.put(jump.getValue());
         buffer.put(hpBase.getValue());

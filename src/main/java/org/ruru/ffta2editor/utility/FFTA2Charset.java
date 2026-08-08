@@ -2,10 +2,16 @@ package org.ruru.ffta2editor.utility;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import org.ruru.ffta2editor.App;
 
 public class FFTA2Charset {
+    private static Logger logger = Logger.getLogger("org.ruru.ffta2editor");
     public static HashMap<Integer, String> decodingMap = new HashMap<>();
     static {
         decodingMap.put(0x00,"\r");
@@ -122,7 +128,7 @@ public class FFTA2Charset {
         decodingMap.put(0x6F, "8");
         decodingMap.put(0x70, "9");
         decodingMap.put(0x71, "~");
-        decodingMap.put(0x72, "'");
+        decodingMap.put(0x72, "`");
         decodingMap.put(0x73, "!");
         decodingMap.put(0x74, "?");
         decodingMap.put(0x75, "#");
@@ -150,7 +156,7 @@ public class FFTA2Charset {
         decodingMap.put(0x8B, "}");
         decodingMap.put(0x8C, "|");
         decodingMap.put(0x8D, "-");
-        decodingMap.put(0x8E, "*");
+        decodingMap.put(0x8E, "ー");
         decodingMap.put(0x8F, "—");
         decodingMap.put(0x90, "«");
         decodingMap.put(0x91, "»");
@@ -187,9 +193,12 @@ public class FFTA2Charset {
         decodingMap.put(0xC7, "\\defaultOption:%02X\\");
         decodingMap.put(0xC800, "\\endOption\\");
         decodingMap.put(0xC9, "\\var9:%02X\\");
-        decodingMap.put(0xCA, "\\varA:%02X\\");
-        decodingMap.put(0xCB, "\\sprite:%02X\\");
-        decodingMap.put(0xCE, "\\varE:%02X\\");
+        decodingMap.put(0xCA, "\\varA:%02X\\"); // Insert variable in text
+        decodingMap.put(0xCB, "\\sprite:%02X\\"); // "com_key" related. 0x0 - 0x18 are valid. Invalid defaults to 0x0.
+        decodingMap.put(0xCC, "\\varC:%02X\\"); // length = -param
+        decodingMap.put(0xCD, "\\varD:%02X\\"); // length = param
+        decodingMap.put(0xCE, "\\varE:%02X\\"); // ???
+        decodingMap.put(0xCF, "\\varF:%02X\\"); // length = params == 0 ? 6 : 0
     }
     public static HashMap<String, Integer> encodingMap = new HashMap<>();
     static {
@@ -307,7 +316,7 @@ public class FFTA2Charset {
         encodingMap.put("8", 0x6F);
         encodingMap.put("9", 0x70);
         encodingMap.put("~", 0x71);
-        encodingMap.put("'", 0x72);
+        encodingMap.put("`", 0x72);
         encodingMap.put("!", 0x73);
         encodingMap.put("?", 0x74);
         encodingMap.put("#", 0x75);
@@ -335,7 +344,7 @@ public class FFTA2Charset {
         encodingMap.put("}", 0x8B);
         encodingMap.put("|", 0x8C);
         encodingMap.put("-", 0x8D);
-        encodingMap.put("*", 0x8E);
+        encodingMap.put("ー", 0x8E);
         encodingMap.put("—", 0x8F);
         encodingMap.put("«", 0x90);
         encodingMap.put("»", 0x91);
@@ -374,11 +383,15 @@ public class FFTA2Charset {
         encodingMap.put("\\var9:", 0xC9);
         encodingMap.put("\\varA:", 0xCA);
         encodingMap.put("\\sprite:", 0xCB);
+        encodingMap.put("\\varC:", 0xCC);
+        encodingMap.put("\\varD:", 0xCD);
         encodingMap.put("\\varE:", 0xCE);
+        encodingMap.put("\\varF:", 0xCF);
     }
 
     public static String decode(ByteBuffer bytes) throws Exception {
         StringBuilder sb = new StringBuilder();
+        ArrayList<String> unknownCharacters = new ArrayList<>();
         while(bytes.remaining() > 0) {
             int b = 0;
             String s = null;
@@ -387,7 +400,6 @@ public class FFTA2Charset {
                 b = (b  << 8) | Byte.toUnsignedInt(bytes.get());
                 s = decodingMap.get(b);
                 if (s != null || bytes.remaining() == 0) break;
-                //else System.out.println(String.format("unknown: %02X", b));
             }
             if (s == null) {
                 bytes.position(bytes.position()-i);
@@ -398,22 +410,22 @@ public class FFTA2Charset {
                 } else {
                     s = String.format("<unknown:%02X>", unknownByte);
                 }
-                System.out.println(s);
-                //throw new Exception(String.format("Failed to decode: %04X", b));
-            //} else if (s.startsWith("\\sprite") || s.startsWith("\\defaultOption") || s.startsWith("\\var")) {
+                unknownCharacters.add(s);
             } else if (s.startsWith("\\") && s.endsWith("%02X\\")) {
                 s = String.format(s, bytes.get());
             }
-            //if (s == "\r") break;
             if (s.equals("\r") ) continue;
             sb.append(s);
-            //if (s == "\\end\\") break;
+        }
+        if (!unknownCharacters.isEmpty()) {
+            String warningMessage = String.format("Unknown characters [%s] in \"%s\"", unknownCharacters.stream().collect(Collectors.joining("\", \"", "\"", "\"")), sb.toString());
+            logger.warning(warningMessage);
+            App.loadWarningList.add(warningMessage);
         }
         return sb.toString();
     }
 
     public static byte[] encode(String s) throws Exception {
-        //char[] chars = s.toCharArray();
         if (s.equals("")) return new byte[]{0x00};
         ByteBuffer encodedBytes = ByteBuffer.allocate((s.length()+1)*4).order(ByteOrder.LITTLE_ENDIAN);
         StringBuilder sb = new StringBuilder(s);
@@ -421,7 +433,6 @@ public class FFTA2Charset {
         Integer lastChar = null;
         for (int i = 0; i < s.length(); i++) {
             for (int j = i; j < s.length()+1; j++) {
-                //String subString = sb.substring(i, j);
                 encodedChar = encodingMap.get(sb.substring(i, j));
                 if (encodedChar != null) {
                     if (encodedChar >= 0xC0) {
@@ -432,9 +443,6 @@ public class FFTA2Charset {
                             j += 3;
                         } else {
                             encodedBytes.putShort((short)encodedChar.shortValue());
-                            //byte b = (byte)(encodedChar >>> 8);
-                            //encodedBytes.put(b);
-                            //encodedBytes.put((byte)(encodedChar.intValue()));
                         }
                     } else {
                         encodedBytes.put(encodedChar.byteValue());
@@ -442,13 +450,6 @@ public class FFTA2Charset {
                     lastChar = encodedChar;
                     i += (j-i)-1;
                     break;
-                    //for (int k = 0; k < 4; k++) {
-                    //    byte b = (byte)(encodedChar >> k*8);
-                    //    encodedBytes.put(b);
-                    //    if (b == 0) break;
-                    //}
-                    //i += (j-i)-1;
-                    //break;
                 }
                 if (j == s.length()) throw new Exception(String.format("Failed to encode unknown character \"%s\" in:\n\"%s\"", sb.substring(i, j), s));
             }

@@ -17,6 +17,7 @@ import org.ruru.ffta2editor.model.job.AbilitySetAbility;
 import org.ruru.ffta2editor.model.job.JobData;
 import org.ruru.ffta2editor.model.job.JobElementalResistance;
 import org.ruru.ffta2editor.model.job.JobGender;
+import org.ruru.ffta2editor.model.job.JobMovablePlaces;
 import org.ruru.ffta2editor.model.job.JobMoveType;
 import org.ruru.ffta2editor.model.topSprite.TopSprite;
 import org.ruru.ffta2editor.model.unitFace.UnitFace;
@@ -59,7 +60,7 @@ public class JobController {
         @Override protected void updateItem(JobData job, boolean empty) {
             super.updateItem(job, empty);
             if (job != null) {
-                label.setText(String.format("%X: %s", job.id , job.name.getValue()));
+                label.setText(job.toString());
             } else {
                 label.setText("");
             }
@@ -77,7 +78,7 @@ public class JobController {
         @Override protected void updateItem(Short id, boolean empty) {
             super.updateItem(id, empty);
             if (id != null) {
-                label.setText(String.format("%X: %s", id, App.jobNames.get(id).getValue()));
+                label.setText(App.jobNames.get(id).toString());
             } else {
                 label.setText("None");
             }
@@ -96,7 +97,7 @@ public class JobController {
             super.updateItem(abilitySet, empty);
             if (abilitySet != null) {
                 //label.setText(id + ": " + AbilityId.abilityNames[id]);
-                label.setText(String.format("%X: %s", abilitySet.id , abilitySet.name.getValue()));
+                label.setText(abilitySet.toString());
             } else {
                 label.setText("None");
             }
@@ -114,7 +115,7 @@ public class JobController {
             super.updateItem(abilitySet, empty);
             if (abilitySet != null && abilitySet.ability.getValue() != null) {
                 //label.setText(id + ": " + AbilityId.abilityNames[id]);
-                label.setText(String.format("%X: %s", abilitySet.ability.getValue().id , abilitySet.ability.getValue().name.getValue()));
+                label.setText(abilitySet.ability.getValue().toString());
             } else {
                 label.setText("");
             }
@@ -200,7 +201,7 @@ public class JobController {
     @FXML CheckBox propertyBit4;
     @FXML CheckBox propertyBit5;
     @FXML CheckBox canAlwaysUseItems;
-    @FXML CheckBox propertyBit7;
+    @FXML CheckBox cannotAttack;
 
     @FXML TextField hpBase;
     @FXML TextField mpBase;
@@ -217,7 +218,6 @@ public class JobController {
     @FXML TextField magickGrowth;
     @FXML TextField resistanceGrowth;
 
-    @FXML TextField movablePlaces;
     @FXML TextField move;
     @FXML TextField jump;
     @FXML TextField evasion;
@@ -238,6 +238,7 @@ public class JobController {
     @FXML AutoCompleteComboBox<JobGender> gender;
     @FXML AutoCompleteComboBox<Race> race;
     @FXML AutoCompleteComboBox<JobMoveType> moveType;
+    @FXML AutoCompleteComboBox<JobMovablePlaces> movablePlaces;
 
     @FXML TextField raceSomethingMaybe;
     @FXML TextField _0x32;
@@ -367,8 +368,11 @@ public class JobController {
         });
         ObservableList<Race> raceEnums = FXCollections.observableArrayList(Race.values());
         race.setData(raceEnums);
+        
         ObservableList<JobMoveType> moveTypeEnums = FXCollections.observableArrayList(JobMoveType.values());
         moveType.setData(moveTypeEnums);
+        ObservableList<JobMovablePlaces> movablePlacesEnums = FXCollections.observableArrayList(JobMovablePlaces.values());
+        movablePlaces.setData(movablePlacesEnums);
         ObservableList<JobElementalResistance> elementalResistanceEnums = FXCollections.observableArrayList(JobElementalResistance.values());
         fireResistance.setData(elementalResistanceEnums);
         airResistance.setData(elementalResistanceEnums);
@@ -433,7 +437,6 @@ public class JobController {
         defenseGrowth.textProperty().addListener(new ByteChangeListener(defenseGrowth));
         magickGrowth.textProperty().addListener(new ByteChangeListener(magickGrowth));
         resistanceGrowth.textProperty().addListener(new ByteChangeListener(resistanceGrowth));
-        movablePlaces.textProperty().addListener(new ByteChangeListener(movablePlaces));
         move.textProperty().addListener(new ByteChangeListener(move));
         jump.textProperty().addListener(new ByteChangeListener(jump));
         evasion.textProperty().addListener(new ByteChangeListener(evasion));
@@ -520,7 +523,7 @@ public class JobController {
         propertyBit4.selectedProperty().unbindBidirectional(jobProperty.getValue().propertyFlags.propertyBit4);
         propertyBit5.selectedProperty().unbindBidirectional(jobProperty.getValue().propertyFlags.propertyBit5);
         canAlwaysUseItems.selectedProperty().unbindBidirectional(jobProperty.getValue().propertyFlags.canAlwaysUseItems);
-        propertyBit7.selectedProperty().unbindBidirectional(jobProperty.getValue().propertyFlags.propertyBit7);
+        cannotAttack.selectedProperty().unbindBidirectional(jobProperty.getValue().propertyFlags.cannotAttack);
 
         fireResistance.valueProperty().unbindBidirectional(jobProperty.getValue().fireResistance);
         airResistance.valueProperty().unbindBidirectional(jobProperty.getValue().airResistance);
@@ -534,6 +537,7 @@ public class JobController {
         gender.valueProperty().unbindBidirectional(jobProperty.getValue().gender);
         race.valueProperty().unbindBidirectional(jobProperty.getValue().race);
         moveType.valueProperty().unbindBidirectional(jobProperty.getValue().moveType);
+        movablePlaces.valueProperty().unbindBidirectional(jobProperty.getValue().movablePlaces);
 
         hpBase.textProperty().unbindBidirectional(jobProperty.getValue().hpBase);
         mpBase.textProperty().unbindBidirectional(jobProperty.getValue().mpBase);
@@ -549,7 +553,6 @@ public class JobController {
         defenseGrowth.textProperty().unbindBidirectional(jobProperty.getValue().defenseGrowth);
         magickGrowth.textProperty().unbindBidirectional(jobProperty.getValue().magickGrowth);
         resistanceGrowth.textProperty().unbindBidirectional(jobProperty.getValue().resistanceGrowth);
-        movablePlaces.textProperty().unbindBidirectional(jobProperty.getValue().movablePlaces);
         move.textProperty().unbindBidirectional(jobProperty.getValue().move);
         jump.textProperty().unbindBidirectional(jobProperty.getValue().jump);
         evasion.textProperty().unbindBidirectional(jobProperty.getValue().evasion);
@@ -640,7 +643,7 @@ public class JobController {
         propertyBit4.selectedProperty().bindBidirectional(jobProperty.getValue().propertyFlags.propertyBit4);
         propertyBit5.selectedProperty().bindBidirectional(jobProperty.getValue().propertyFlags.propertyBit5);
         canAlwaysUseItems.selectedProperty().bindBidirectional(jobProperty.getValue().propertyFlags.canAlwaysUseItems);
-        propertyBit7.selectedProperty().bindBidirectional(jobProperty.getValue().propertyFlags.propertyBit7);
+        cannotAttack.selectedProperty().bindBidirectional(jobProperty.getValue().propertyFlags.cannotAttack);
 
         fireResistance.valueProperty().bindBidirectional(jobProperty.getValue().fireResistance);
         airResistance.valueProperty().bindBidirectional(jobProperty.getValue().airResistance);
@@ -654,6 +657,7 @@ public class JobController {
         gender.valueProperty().bindBidirectional(jobProperty.getValue().gender);
         race.valueProperty().bindBidirectional(jobProperty.getValue().race);
         moveType.valueProperty().bindBidirectional(jobProperty.getValue().moveType);
+        movablePlaces.valueProperty().bindBidirectional(jobProperty.getValue().movablePlaces);
 
         StringConverter<Byte> unsignedByteConverter = new ByteStringConverter();
         Bindings.bindBidirectional(hpBase.textProperty(), jobProperty.getValue().hpBase, unsignedByteConverter);
@@ -670,7 +674,6 @@ public class JobController {
         Bindings.bindBidirectional(defenseGrowth.textProperty(), jobProperty.getValue().defenseGrowth, unsignedByteConverter);
         Bindings.bindBidirectional(magickGrowth.textProperty(), jobProperty.getValue().magickGrowth, unsignedByteConverter);
         Bindings.bindBidirectional(resistanceGrowth.textProperty(), jobProperty.getValue().resistanceGrowth, unsignedByteConverter);
-        Bindings.bindBidirectional(movablePlaces.textProperty(), jobProperty.getValue().movablePlaces, unsignedByteConverter);
         Bindings.bindBidirectional(move.textProperty(), jobProperty.getValue().move, unsignedByteConverter);
         Bindings.bindBidirectional(jump.textProperty(), jobProperty.getValue().jump, unsignedByteConverter);
         Bindings.bindBidirectional(evasion.textProperty(), jobProperty.getValue().evasion, unsignedByteConverter);
@@ -873,9 +876,9 @@ public class JobController {
 
     @FXML
     public void addAbilitySet() {
-        if (abilitySetList.getItems() != null) {
-            int newIndex = abilitySetList.getItems().size();
-            abilitySetList.getItems().add(new AbilitySet("", newIndex));
+        if (abilitySetList.getData() != null) {
+            int newIndex = abilitySetList.getData().size();
+            abilitySetList.getData().add(new AbilitySet("", newIndex));
             abilitySetList.getSelectionModel().selectLast();;
         }
     }
@@ -884,8 +887,8 @@ public class JobController {
         //if (abilitySetList.getSelectionModel().getSelectedItem() != null && abilitySetList.getSelectionModel().getSelectedIndex() > 0) {
         //    abilitySetList.getItems().remove(abilitySetList.getSelectionModel().getSelectedIndex());
         //}
-        if (abilitySetList.getItems().size() > 0) {
-            abilitySetList.getItems().removeLast();
+        if (abilitySetList.getData().size() > 0) {
+            abilitySetList.getData().removeLast();
         }
     }
 
@@ -952,7 +955,7 @@ public class JobController {
                     AbilitySet abilitySet = new AbilitySet(abilitySetBytes, abilitySetAbilityBytes, i);
                     abilitySetDataList.add(abilitySet);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, String.format("Failed to load Ability Set %d \"%s\"", i, App.abilitySetNames.size() > i ? App.abilitySetNames.get(i).getValue() : ""));
+                    logger.log(Level.SEVERE, String.format("Failed to load Ability Set %d \"%s\"", i, App.abilitySetNames.size() > i ? App.abilitySetNames.get(i).string().getValue() : ""));
                     throw e;
                 }
             }
@@ -990,7 +993,7 @@ public class JobController {
                     JobData abilityData = new JobData(jobDataBytes, i);
                     jobDataList.add(abilityData);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, String.format("Failed to load Job %d \"%s\"", i, App.jobNames.size() > i ? App.jobNames.get(i).getValue() : ""));
+                    logger.log(Level.SEVERE, String.format("Failed to load Job %d \"%s\"", i, App.jobNames.size() > i ? App.jobNames.get(i).string().getValue() : ""));
                     throw e;
                 }
             }
@@ -1059,7 +1062,7 @@ public class JobController {
         abilitySetAbilityBytes.rewind();
         
         int firstAbilityIndex = 0x0;
-        List<AbilitySet> abilitySets = abilitySetList.getItems();
+        List<AbilitySet> abilitySets = abilitySetList.getData();
         ByteBuffer newAbilitySetbytes = ByteBuffer.allocate(abilitySets.size()*0xc).order(ByteOrder.LITTLE_ENDIAN);
         ByteBuffer newAbilitySetAbilitybytes = ByteBuffer.allocate(abilitySets.stream().mapToInt(x -> x.abilities.size()).sum() * 0xc).order(ByteOrder.LITTLE_ENDIAN);
         //newAbilitySetAbilitybytes.put(abilitySetAbilityBytes.slice(0, 0xc*1)); // Copy the empty ability
@@ -1087,6 +1090,9 @@ public class JobController {
         App.arm9.put(0x000b81dc, (byte)abilitySets.size());
         App.overlay11.put(0x4898, (byte)abilitySets.size());
         App.overlay11.put(0x83f8, (byte)abilitySets.size());
+        // These require a change in the menus as well
+        // 0x0010f41c
+        // overlay_11 + 0x58
 
 
         App.sysdata.setFile(3, newAbilitySetAbilitybytes.rewind());

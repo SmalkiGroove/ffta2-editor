@@ -1,6 +1,8 @@
 package org.ruru.ffta2editor;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -8,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.FileHandler;
@@ -16,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import org.ruru.ffta2editor.TextController.StringWithId;
 import org.ruru.ffta2editor.model.ability.AbilityData;
 import org.ruru.ffta2editor.model.ability.ActiveAbilityData;
 import org.ruru.ffta2editor.model.ability.SPAbilityData;
@@ -26,6 +30,8 @@ import org.ruru.ffta2editor.model.formation.FormationData;
 import org.ruru.ffta2editor.model.item.ConsumableData;
 import org.ruru.ffta2editor.model.item.EquipmentData;
 import org.ruru.ffta2editor.model.item.ItemData;
+import org.ruru.ffta2editor.model.item.ItemTable;
+import org.ruru.ffta2editor.model.item.LawBonus;
 import org.ruru.ffta2editor.model.item.LootData;
 import org.ruru.ffta2editor.model.job.AbilitySet;
 import org.ruru.ffta2editor.model.job.JobData;
@@ -45,7 +51,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-
+// mvn clean compile javafx:jlink
 // build exe: jpackage --type app-image --module org.ruru.ffta2editor/org.ruru.ffta2editor.App  -n ffta2-editor --runtime-image .\target\image\
 /**
  * JavaFX App
@@ -65,6 +71,9 @@ public class App extends Application {
     public static IdxAndPak entrydata;
     public static IdxAndPak atl;
     public static IdxAndPak face;
+    public static IdxAndPak mapData;
+    public static IdxAndPak texData;
+    public static IdxAndPak plttData;
     public static ByteBuffer arm9;
     public static ByteBuffer overlay8;
     public static ByteBuffer overlay11;
@@ -91,47 +100,112 @@ public class App extends Application {
     public static ObservableList<UnitSst> unitSstList;
     public static ObservableList<AuctionPrizeTable> auctionPrizeTableList;
     public static ObservableList<AuctionPrizeTable> auctionGrandPrizeTableList;
+    public static ObservableList<ItemTable> itemTableList;
+    public static ObservableList<LawBonus> lawBonusList;
 
-    public static ObservableList<StringProperty> characterNames;
-    public static ObservableList<StringProperty> jobNames;
-    public static ObservableList<StringProperty> abilitySetNames;
-    public static ObservableList<StringProperty> abilityNames;
-    public static ObservableList<StringProperty> jobDescriptions;
-    public static ObservableList<StringProperty> abilitySetDescriptions;
-    public static ObservableList<StringProperty> abilityDescriptions;
-    public static ObservableList<StringProperty> itemNames;
-    public static ObservableList<StringProperty> itemDescriptions;
-    public static ObservableList<StringProperty> bonusEffects;
-    public static ObservableList<StringProperty> lawNames;
-    public static ObservableList<StringProperty> questNames;
-    public static ObservableList<StringProperty> questDescriptions;
-    public static ObservableList<StringProperty> regionNames;
-    public static ObservableList<StringProperty> locationNames;
-    public static ObservableList<StringProperty> bazaarSetNames;
-    public static ObservableList<StringProperty> bazaarSetDescriptions;
-    public static ObservableList<StringProperty> noticeNames;
-    public static ObservableList<StringProperty> rumorNames;
+    public static ObservableList<StringWithId> characterNames;
+    public static ObservableList<StringWithId> jobNames;
+    public static ObservableList<StringWithId> abilitySetNames;
+    public static ObservableList<StringWithId> abilityNames;
+    public static ObservableList<StringWithId> jobDescriptions;
+    public static ObservableList<StringWithId> abilitySetDescriptions;
+    public static ObservableList<StringWithId> abilityDescriptions;
+    public static ObservableList<StringWithId> abilityHelpText;
+    public static ObservableList<StringWithId> itemNames;
+    public static ObservableList<StringWithId> itemDescriptions;
+    public static ObservableList<StringWithId> bonusEffects;
+    public static ObservableList<StringWithId> lawNames;
+    public static ObservableList<StringWithId> questNames;
+    public static ObservableList<StringWithId> questDescriptions;
+    public static ObservableList<StringWithId> regionNames;
+    public static ObservableList<StringWithId> locationNames;
+    public static ObservableList<StringWithId> bazaarSetNames;
+    public static ObservableList<StringWithId> bazaarSetDescriptions;
+    public static ObservableList<StringWithId> noticeNames;
+    public static ObservableList<StringWithId> rumorNames;
     public static Map<Integer, StringProperty> evMsgNames;
     
-
+    private static String editorVersion;
     private static Logger logger = Logger.getLogger("org.ruru.ffta2editor");
     private static final Path logPath = Path.of("logs");
     private static final Path configPath = Path.of("ffta2-editor.properties");
     private static final Properties properties = new Properties();
     public static final Properties config = new Properties();
 
-    @Override
-    public void start(Stage stage) throws IOException {
-        if (!logPath.toFile().exists()) {
-            Files.createDirectory(logPath);
+
+    public static ArrayList<String> loadWarningList = new ArrayList<>();
+
+    public static void saveLastRomPath(File romFile) {
+        config.setProperty("lastRomPath", romFile.getParent());
+        App.saveConfig();
+    }
+    
+    public static File getLastRomPath() {
+        try {
+            File lastPath = Path.of(config.getProperty("lastRomPath")).toFile();
+            if (!lastPath.exists()) throw new FileNotFoundException("Last path doesn't exist");
+            return lastPath;
+        } catch (Exception e) {
+            config.setProperty("lastRomPath", System.getProperty("user.dir"));
+            return Path.of(System.getProperty("user.dir")).toFile();
         }
-        if (!configPath.toFile().exists()) {
-            configPath.toFile().createNewFile();
-            config.load(new FileInputStream(configPath.toFile()));
-        } else {
-            config.load(new FileInputStream(configPath.toFile()));
+    }
+
+    public static void saveLastFile(File file) {
+        config.setProperty("lastFilePath", !file.isDirectory() ? file.getParent() : file.getPath());
+        App.saveConfig();
+    }
+
+    public static File getLastFile() {
+        try {
+            File lastFile = Path.of(config.getProperty("lastFilePath")).toFile();
+            if (!lastFile.exists()) throw new FileNotFoundException("Last file doesn't exist");
+            return lastFile;
+        } catch (Exception e) {
+            config.setProperty("lastFilePath", System.getProperty("user.dir"));
+            return Path.of(System.getProperty("user.dir")).toFile();
         }
-        FileHandler fh = new FileHandler(String.format("logs/%s.log", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))));
+    }
+
+    private static void loadConfig() {
+        try (FileInputStream fs = new FileInputStream(configPath.toFile())){
+            config.load(fs);
+        } catch (FileNotFoundException e) {
+            logger.log(Level.INFO, "Config not found", e);
+            return;
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Failed to load config", e);
+            return;
+        }
+        String lastVersion = config.getProperty("editorVersion");
+
+        if (lastVersion == null) {
+            // Pre-1.3.4
+            // Rename lastPath to lastRomPath
+            String lastPath = config.getProperty("lastPath");
+            config.setProperty("lastRomPath", lastPath);
+            config.remove("lastPath");
+        } else if (lastVersion != editorVersion) {
+            
+        }
+    }
+
+    public static void saveConfig() {
+        try (FileOutputStream fs = new FileOutputStream(configPath.toFile())){
+            config.store(fs, null);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to save config", e);
+        }
+    }
+
+    private void setupLogger() throws IOException {
+        try {
+            Files.createDirectories(logPath);
+        } catch (Exception e) {
+            System.err.println("Failed to create log folder");
+            return;
+        }
+        FileHandler fh = new FileHandler(String.format("%s/%s.log", logPath, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))));
         fh.setFormatter(new SimpleFormatter());
         logger.addHandler(fh);
         logger.setLevel(Level.ALL);
@@ -140,11 +214,20 @@ public class App extends Application {
         for (Handler handler : handlers) {
             globalLogger.removeHandler(handler);
         }
+    }
+
+    @Override
+    public void start(Stage stage) throws IOException {
         properties.load(this.getClass().getClassLoader().getResourceAsStream("project.properties"));
-        
+        editorVersion = properties.getProperty("version");
+        setupLogger();
+        loadConfig();
+        config.setProperty("editorVersion", editorVersion);
+
+
         scene = new Scene(loadFXML("main"), 1280, 720);
         stage.setScene(scene);
-        stage.setTitle(String.format("FFTA2 Editor %s", properties.getProperty("version")));
+        stage.setTitle(String.format("FFTA2 Editor %s", editorVersion));
         stage.show();
     }
 
@@ -159,12 +242,7 @@ public class App extends Application {
 
     public static void main(String[] args) {
         launch();
-        try {
-            config.store(new FileOutputStream(configPath.toFile()), "");
-        } catch (Exception e) {
-            System.err.println(e);
-            logger.log(Level.WARNING, "Failed to save config", e);
-        }
+        saveConfig();
     }
 
 }

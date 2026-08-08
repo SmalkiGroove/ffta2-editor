@@ -27,6 +27,8 @@ ffta2-editor.properties
 *.exe
 target/*
 data/*
+vanilla/*
 ffta2-editor/*
 .vscode/*
 logs/*
+*.nds*/*

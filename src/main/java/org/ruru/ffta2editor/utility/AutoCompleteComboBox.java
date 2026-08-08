@@ -32,6 +32,13 @@ public class AutoCompleteComboBox<T> extends ComboBox<T> {
         setItems(value);
     }
 
+    public ObservableList<T> getData() {
+        return autoCompleteListener.data;
+    }
+
+    public void clearFilter() {
+        setItems(autoCompleteListener.data);
+    }
 
     private class AutoCompleteComboBoxListener implements EventHandler<KeyEvent> {
         private ComboBox<T> comboBox;

@@ -1,32 +1,46 @@
 package org.ruru.ffta2editor;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.BitSet;
+import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
+import javax.imageio.ImageIO;
+
+import org.ruru.ffta2editor.MainController.IdxPaks.IdxPakPaths;
+import org.ruru.ffta2editor.model.map.MapData;
+import org.ruru.ffta2editor.model.stringTable.MessageId;
+import org.ruru.ffta2editor.model.stringTable.StringSingle;
+import org.ruru.ffta2editor.model.stringTable.StringTable;
+import org.ruru.ffta2editor.model.topSprite.TopSprite;
+import org.ruru.ffta2editor.model.unitFace.UnitFace;
 import org.ruru.ffta2editor.utility.Archive;
 import org.ruru.ffta2editor.utility.IdxAndPak;
 import org.ruru.ffta2editor.utility.LZSS;
+import org.ruru.ffta2editor.utility.UnitSprite;
 
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.MenuItem;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.AnchorPane;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.util.Pair;
 
@@ -70,17 +84,255 @@ public class MainController {
 
     @FXML AnchorPane equipmentTab;
     @FXML EquipmentController equipmentTabController;
+
+    @FXML AnchorPane consumableTab;
+    @FXML ConsumableController consumableTabController;
+
+    @FXML AnchorPane lootTab;
+    @FXML LootController lootTabController;
+
+    @FXML AnchorPane itemTableTab;
+    @FXML ItemTableController itemTableTabController;
+
+    @FXML AnchorPane lawBonusTab;
+    @FXML LawBonusController lawBonusTabController;
     
     @FXML MenuItem saveMenuItem;
 
+    Path dataPath;
     File romFile;
     ObjectProperty<File> lastSavePath = new SimpleObjectProperty<>();
     
     private static Logger logger = Logger.getLogger("org.ruru.ffta2editor");
 
+    private class ExportImageFlags {
+        BitSet flags;
+
+        public ExportImageFlags setUnitSprites(boolean value) {
+            flags.set(0, value);
+            return this;
+        }
+        public ExportImageFlags setUnitSprites() {
+            return setUnitSprites(true);
+        }
+        public boolean getUnitSprites() {
+            return flags.get(0);
+        }
+
+        public ExportImageFlags setTopSprites(boolean value) {
+            flags.set(1, value);
+            return this;
+        }
+        public ExportImageFlags setTopSprites() {
+            return setTopSprites(true);
+        }
+        public boolean getTopSprites() {
+            return flags.get(1);
+        }
+
+        public ExportImageFlags setFaces(boolean value) {
+            flags.set(2, value);
+            return this;
+        }
+        public ExportImageFlags setFaces() {
+            return setFaces(true);
+        }
+        public boolean getFaces() {
+            return flags.get(2);
+        }
+
+        public ExportImageFlags setMapTextures(boolean value) {
+            flags.set(3, value);
+            return this;
+        }
+        public ExportImageFlags setMapTextures() {
+            return setMapTextures(true);
+        }
+        public boolean getMapTextures() {
+            return flags.get(3);
+        }
+
+        public ExportImageFlags setMaps(boolean value) {
+            flags.set(4, value);
+            return this;
+        }
+        public ExportImageFlags setMaps() {
+            return setMaps(true);
+        }
+        public boolean getMaps() {
+            return flags.get(4);
+        }
+
+        ExportImageFlags() {
+            flags = new BitSet(5);
+        }
+
+
+    } 
+
+    @FXML MenuItem exportAllImagesMenuItem;
+    @FXML MenuItem exportUnitSpritesMenuItem;
+    @FXML MenuItem exportTopSpritesMenuItem;
+    @FXML MenuItem exportFacesMenuItem;
+    @FXML MenuItem exportMapsMenuItem;
+
     @FXML
     public void initialize() {
         saveMenuItem.disableProperty().bind(lastSavePath.isNull());
+        exportAllImagesMenuItem.setOnAction(e -> exportSpritesSelector(new ExportImageFlags().setUnitSprites().setTopSprites().setFaces()));
+        exportUnitSpritesMenuItem.setOnAction(e -> exportSpritesSelector(new ExportImageFlags().setUnitSprites()));
+        exportTopSpritesMenuItem.setOnAction(e -> exportSpritesSelector(new ExportImageFlags().setTopSprites()));
+        exportFacesMenuItem.setOnAction(e -> exportSpritesSelector(new ExportImageFlags().setFaces()));
+        exportMapsMenuItem.setOnAction(e -> exportSpritesSelector(new ExportImageFlags().setMaps().setMapTextures()));
+    }
+
+    public static class IdxPaks {
+        public static record IdxPakPaths(String idx, String pak){};
+        public static IdxPakPaths sysdata = new IdxPakPaths("system/rom/sysdata_rom.idx", "system/rom/sysdata.pak");
+        public static IdxPakPaths unitSsts = new IdxPakPaths("char/rom/rom_idx/UnitSst.rom_idx", "char/rom/pak/UnitSst.pak");
+        public static IdxPakPaths unitCgs = new IdxPakPaths("char/rom/rom_idx/UnitCg.rom_idx", "char/rom/pak/UnitCg.pak");
+        public static IdxPakPaths jdMessage = new IdxPakPaths(String.format("system/rom/JD_message_rom_%d.idx", 0), String.format("system/rom/JD_message_%d.pak", 0));
+        public static IdxPakPaths jhQuest = new IdxPakPaths(String.format("system/rom/JH_questtext_rom_%d.idx", 0), String.format("system/rom/JH_questtext_%d.pak", 0));
+        public static IdxPakPaths jhRumor = new IdxPakPaths(String.format("system/rom/JH_uwasatext_rom_%d.idx", 0), String.format("system/rom/JH_uwasatext_%d.pak", 0));
+        public static IdxPakPaths jhNotice = new IdxPakPaths(String.format("system/rom/JH_freepapermes_rom_%d.idx", 0), String.format("system/rom/JH_freepapermes_%d.pak", 0));
+        public static IdxPakPaths evMsg = new IdxPakPaths(String.format("event/rom/ev_msg%d_rom.idx", 0), String.format("event/rom/ev_msg%d.pak", 0));
+        public static IdxPakPaths entrydata = new IdxPakPaths("system/rom/entrydata_rom.idx", "system/rom/entrydata.pak");
+        public static IdxPakPaths atl = new IdxPakPaths("menu/atl_rom/atl_rom.idx", "menu/atl_rom/atl.pak");
+        public static IdxPakPaths face = new IdxPakPaths("menu/face_rom/face_rom.idx", "menu/face_rom/face.pak");
+        public static IdxPakPaths mapData = new IdxPakPaths("map/rom/MapData.idx", "map/rom/MapData.dat");
+        public static IdxPakPaths texData = new IdxPakPaths("map/rom/TexData.idx", "map/rom/TexData.dat");
+        public static IdxPakPaths plttData = new IdxPakPaths("map/rom/PlttData.idx", "map/rom/PlttData.dat");
+    }
+
+    private void compareIdxPaks(IdxAndPak original, IdxAndPak repacked, String name) throws Exception {
+
+        for (int i = 0; i < original.numFiles() && i < repacked.numFiles(); i++) {
+            if (name.equals("sysdata") && (i == 2 || i == 3)) continue;
+            ByteBuffer oldFile = original.getFile(i);
+            ByteBuffer newFile = repacked.getFile(i);
+            if (oldFile == null || newFile == null) {
+                if (oldFile != newFile) throw new Exception(String.format("File %d in %s is null", i, name));
+                continue;
+            }
+            int mismatch = oldFile.rewind().mismatch(newFile.rewind());
+            if (mismatch != -1) {
+                if (oldFile.rewind().remaining() != newFile.rewind().remaining()) {
+                    logger.warning(String.format("File %d in %s not equal size (%d != %d)", i, name, oldFile.remaining(), newFile.remaining()));
+                } else {
+                    throw new Exception(String.format("File %d in %s has changed at %d", i, name, mismatch));
+                }
+            }
+        }
+    }
+
+    private void compareAfterSave() throws Exception {
+        //ArrayList<ArchiveEntry> originalFiles = new ArrayList<>();
+        //for (ArchiveEntry entry : App.archive.files) {
+        //    originalFiles.add(entry.copy());
+        //}
+
+        IdxAndPak sysdata = new IdxAndPak("sysdata", App.archive.getFile(IdxPaks.sysdata.idx()), App.archive.getFile(IdxPaks.sysdata.pak()));
+
+        IdxAndPak unitSsts = new IdxAndPak("unitSsts", App.archive.getFile(IdxPaks.unitSsts.idx()), App.archive.getFile(IdxPaks.unitSsts.pak()));
+
+        IdxAndPak unitCgs = new IdxAndPak("unitCgs", App.archive.getFile(IdxPaks.unitCgs.idx()), App.archive.getFile(IdxPaks.unitCgs.pak()));
+        
+        IdxAndPak jdMessage = new IdxAndPak("jdMessage", App.archive.getFile(IdxPaks.jdMessage.idx()), App.archive.getFile(IdxPaks.jdMessage.pak()));
+
+        IdxAndPak jhQuest = new IdxAndPak("jhQuest", App.archive.getFile(IdxPaks.jhQuest.idx()), App.archive.getFile(IdxPaks.jhQuest.pak()));
+        
+        IdxAndPak jhRumor = new IdxAndPak("jhRumor", App.archive.getFile(IdxPaks.jhRumor.idx()), App.archive.getFile(IdxPaks.jhRumor.pak()));
+        
+        IdxAndPak jhNotice = new IdxAndPak("jhNotice", App.archive.getFile(IdxPaks.jhNotice.idx()), App.archive.getFile(IdxPaks.jhNotice.pak()));
+        
+        IdxAndPak evMsg = new IdxAndPak("evMsg", App.archive.getFile(IdxPaks.evMsg.idx()), App.archive.getFile(IdxPaks.evMsg.pak()));
+
+        IdxAndPak entrydata = new IdxAndPak("entrydata", App.archive.getFile(IdxPaks.entrydata.idx()), App.archive.getFile(IdxPaks.entrydata.pak()));
+        
+        IdxAndPak atl = new IdxAndPak("atl", App.archive.getFile(IdxPaks.atl.idx()), App.archive.getFile(IdxPaks.atl.pak()));
+        
+        IdxAndPak face = new IdxAndPak("face", App.archive.getFile(IdxPaks.face.idx()), App.archive.getFile(IdxPaks.face.pak()));
+
+        IdxAndPak mapData = new IdxAndPak("mapData", App.archive.getFile(IdxPaks.mapData.idx()), App.archive.getFile(IdxPaks.mapData.pak()));
+
+        IdxAndPak texData = new IdxAndPak("texData", App.archive.getFile(IdxPaks.texData.idx()), App.archive.getFile(IdxPaks.texData.pak()));
+
+        IdxAndPak plttData = new IdxAndPak("plttData", App.archive.getFile(IdxPaks.plttData.idx()), App.archive.getFile(IdxPaks.plttData.pak()));
+
+
+        Pair<ByteBuffer, ByteBuffer> repackedBytes = App.sysdata.repack();
+        IdxAndPak repacked = new IdxAndPak("sysdata", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(sysdata, App.sysdata, "sysdata");
+
+        repackedBytes = App.unitSsts.repack();
+        repacked = new IdxAndPak("unitSsts", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(unitSsts, App.unitSsts, "unitSsts");
+        
+        repackedBytes = App.unitCgs.repack();
+        repacked = new IdxAndPak("unitCgs", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(unitCgs, App.unitCgs, "unitCgs");
+        
+        repackedBytes = App.jdMessage.repack();
+        repacked = new IdxAndPak("jdMessage", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(jdMessage, App.jdMessage, "jdMessage");
+        
+        repackedBytes = App.jhQuest.repack();
+        repacked = new IdxAndPak("jhQuest", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(jhQuest, App.jhQuest, "jhQuest");
+        
+        repackedBytes = App.jhRumor.repack();
+        repacked = new IdxAndPak("jhRumor", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(jhRumor, App.jhRumor, "jhRumor");
+        
+        repackedBytes = App.jhNotice.repack();
+        repacked = new IdxAndPak("jhNotice", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(jhNotice, App.jhNotice, "jhNotice");
+        
+        repackedBytes = App.evMsg.repack();
+        repacked = new IdxAndPak("evMsg", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(evMsg, App.evMsg, "evMsg");
+        
+        repackedBytes = App.entrydata.repack();
+        repacked = new IdxAndPak("entrydata", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(entrydata, App.entrydata, "entrydata");
+        
+        repackedBytes = App.atl.repack();
+        repacked = new IdxAndPak("atl", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(atl, App.atl, "atl");
+        
+        repackedBytes = App.face.repack();
+        repacked = new IdxAndPak("face", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(face, App.face, "face");
+        
+        repackedBytes = App.mapData.repack();
+        repacked = new IdxAndPak("mapData", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(mapData, App.mapData, "mapData");
+        
+        repackedBytes = App.texData.repack();
+        repacked = new IdxAndPak("texData", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(texData, App.texData, "texData");
+        
+        repackedBytes = App.plttData.repack();
+        repacked = new IdxAndPak("plttData", repackedBytes.getKey(),repackedBytes.getValue());
+        compareIdxPaks(plttData, App.plttData, "plttData");
+
+        //App.sysdata.files.get(0).compareTo(null)
+        //App.sysdata
+        //App.unitSsts
+        //App.unitCgs
+        //App.jdMessage
+        //App.jhQuest
+        //App.jhRumor
+        //App.jhNotice
+        //App.evMsg
+        //App.entrydata
+        //App.atl
+        //App.face
+
+    }
+
+    private ByteBuffer loadAsBuffer(Path p) throws IOException {
+        return ByteBuffer.wrap(Files.readAllBytes(p)).order(ByteOrder.LITTLE_ENDIAN);
     }
 
     @FXML
@@ -88,23 +340,14 @@ public class MainController {
 
         setDim(true);
         FileChooser chooser = new FileChooser();
-        try {
-            File lastPath = Path.of(App.config.getProperty("lastPath")).toFile();
-            if (!lastPath.exists()) throw new FileNotFoundException("Last path doesn't exist");
-            chooser.setInitialDirectory(lastPath);
-        } catch (Exception e) {
-            App.config.setProperty("lastPath", System.getProperty("user.dir"));
-            chooser.setInitialDirectory(Path.of(System.getProperty("user.dir")).toFile());
-            System.err.println(e);
-        }
-        
-        chooser.setTitle("Open Directory");
+        chooser.setTitle("Open ROM");
+        chooser.setInitialDirectory(App.getLastRomPath());
         File loadPath = chooser.showOpenDialog(abilityTab.getScene().getWindow());
         if (loadPath == null) {
             setDim(false);
             return;
         }
-        App.config.setProperty("lastPath", loadPath.getParent());
+        App.saveLastRomPath(loadPath);
         lastSavePath.set(loadPath);
         try {
             load(loadPath);
@@ -116,8 +359,21 @@ public class MainController {
             loadAlert.setHeaderText("Loading failed");
             loadAlert.setContentText(e.toString());
             loadAlert.show();
+        } finally {
+            setDim(false);
         }
-        setDim(false);
+        if (!App.loadWarningList.isEmpty()) {
+            Alert loadAlert = new Alert(AlertType.ERROR);
+            loadAlert.setTitle("Loading");
+            loadAlert.setHeaderText(String.format("Loading succeeded with %d warnings", App.loadWarningList.size()));
+            String warningMessages = App.loadWarningList.stream().limit(10).collect(Collectors.joining("\n"));
+            if (App.loadWarningList.size() > 10) {
+                warningMessages = warningMessages.concat(String.format("\n+ %d addtional warnings", App.loadWarningList.size()-10));
+            }
+            App.loadWarningList.clear();
+            loadAlert.setContentText(warningMessages);
+            loadAlert.show();
+        }
 
         //if (!load(loadPath)) {
         //    Alert loadAlert = new Alert(AlertType.ERROR);
@@ -236,7 +492,7 @@ public class MainController {
         //    for (int pal = 0; pal < testSprite.spritePalettes.palettes.size(); pal++) {
         //        for (int pose = 0; pose < testData.spriteMaps.size(); pose++) {
         //            BufferedImage fullImage = testSprite.getSprite(pose, pal);
-        //            Path filePath = Path.of(String.format("G:\\sprites\\unit%03d\\pal%d\\%d.png", i, pal, pose));
+        //            Path filePath = Path.of(String.format("G:/sprites/unit%03d/pal%d/%d.png", i, pal, pose));
         //            Files.createDirectories(filePath.getParent());
         //            ImageIO.write(fullImage, "png", filePath.toFile());
         //        }
@@ -249,10 +505,25 @@ public class MainController {
     }
 
     private void load(File loadPath) throws Exception {
+        App.loadWarningList.clear();
         logger.info("Unpacking rom with ndstool");
         romFile = loadPath;
-        Path dataPath = Path.of("data");
-        ProcessBuilder ndsTool = new ProcessBuilder("ndstool.exe", "-x", loadPath.toPath().toString(),
+
+        dataPath = Files.createTempDirectory(Path.of("."), loadPath.getName());
+        Path dataPathCapture = dataPath;
+        Runtime.getRuntime().addShutdownHook((new Thread() {
+            @Override
+            public void run() {
+                try (var stream = Files.walk(dataPathCapture)) {
+                    stream.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+                    
+                } catch (Exception e) {
+                    System.err.println(String.format("Failed to delete temp folder %s", dataPathCapture));
+                }
+            }
+        }));
+        //Path dataPath = Path.of("data");
+        ProcessBuilder ndsTool = new ProcessBuilder("ndstool", "-x", loadPath.toPath().toString(),
                                                "-9", dataPath.resolve("arm9.bin").toString(),
                                                "-7", dataPath.resolve("arm7.bin").toString(),
                                                "-y9", dataPath.resolve("y9.bin").toString(),
@@ -275,82 +546,61 @@ public class MainController {
         //File file = chooser.showDialog(abilityTab.getScene().getWindow());
         //if (file == null) return;
         
-        //File file = Path.of("C:\\Users\\Ruru\\Documents\\GitHub\\ffta2-editor").toFile();
+        //File file = Path.of("C:/Users/Ruru/Documents/GitHub/ffta2-editor").toFile();
         logger.info("Parsing archive");
-        File pcIdx = dataPath.resolve("data\\master\\pc.idx").toFile();
-        File pcBin = dataPath.resolve("data\\master\\pc.bin").toFile();
+        File pcIdx = dataPath.resolve("data/master/pc.idx").toFile();
+        File pcBin = dataPath.resolve("data/master/pc.bin").toFile();
         
         App.archive = new Archive(pcIdx, pcBin);
-        FileInputStream arm9 = new FileInputStream(dataPath.resolve("arm9.bin").toFile());
-        App.arm9 = ByteBuffer.wrap(arm9.readAllBytes()).order(ByteOrder.LITTLE_ENDIAN);
-        arm9.close();
-        FileInputStream overlay11 = new FileInputStream(dataPath.resolve("overlay\\overlay_0011.bin").toFile());
-        App.overlay11 = ByteBuffer.wrap(overlay11.readAllBytes()).order(ByteOrder.LITTLE_ENDIAN);
-        overlay11.close();
-        FileInputStream overlay8 = new FileInputStream(dataPath.resolve("overlay\\overlay_0008.bin").toFile());
-        App.overlay8 = ByteBuffer.wrap(overlay8.readAllBytes()).order(ByteOrder.LITTLE_ENDIAN);
-        overlay8.close();
+        App.arm9 = loadAsBuffer(dataPath.resolve("arm9.bin"));
+        App.overlay11 = loadAsBuffer(dataPath.resolve("overlay/overlay_0011.bin"));
+        App.overlay8 = loadAsBuffer(dataPath.resolve("overlay/overlay_0008.bin"));
+
+        
 
 
         
         logger.info("Parsing sysdata");
-        ByteBuffer sysdataIdx = App.archive.getFile("system/rom/sysdata_rom.idx");
-        ByteBuffer sysdataPak = App.archive.getFile("system/rom/sysdata.pak");
-
-        App.sysdata = new IdxAndPak(sysdataIdx, sysdataPak);
+        App.sysdata = new IdxAndPak("sysdata", App.archive.getFile(IdxPaks.sysdata.idx()), App.archive.getFile(IdxPaks.sysdata.pak()));
         
         logger.info("Parsing UnitSst");
-        ByteBuffer unitSstIdx = App.archive.getFile("char/rom/rom_idx/UnitSst.rom_idx");
-        ByteBuffer unitSstPak = App.archive.getFile("char/rom/pak/UnitSst.pak");
-
-        App.unitSsts = new IdxAndPak(unitSstIdx, unitSstPak);
+        App.unitSsts = new IdxAndPak("unitSsts", App.archive.getFile(IdxPaks.unitSsts.idx()), App.archive.getFile(IdxPaks.unitSsts.pak()));
 
         logger.info("Parsing UnitCg");
-        ByteBuffer unitCgsIdx = App.archive.getFile("char/rom/rom_idx/UnitCg.rom_idx");
-        ByteBuffer unitCgsPak = App.archive.getFile("char/rom/pak/UnitCg.pak");
-        App.unitCgs = new IdxAndPak(unitCgsIdx, unitCgsPak);
+        App.unitCgs = new IdxAndPak("unitCgs", App.archive.getFile(IdxPaks.unitCgs.idx()), App.archive.getFile(IdxPaks.unitCgs.pak()));
         
         logger.info("Parsing JD_message");
-        // 0 = US language
-        ByteBuffer jdMessageIdx = App.archive.getFile(String.format("system/rom/JD_message_rom_%d.idx", 0));
-        ByteBuffer jdMessagePak = App.archive.getFile(String.format("system/rom/JD_message_%d.pak", 0));
-        App.jdMessage = new IdxAndPak(jdMessageIdx, jdMessagePak);
+        App.jdMessage = new IdxAndPak("jdMessage", App.archive.getFile(IdxPaks.jdMessage.idx()), App.archive.getFile(IdxPaks.jdMessage.pak()));
 
         logger.info("Parsing JH_questtext");
-        ByteBuffer jhQuestIdx = App.archive.getFile(String.format("system/rom/JH_questtext_rom_%d.idx", 0));
-        ByteBuffer jhQuestPak = App.archive.getFile(String.format("system/rom/JH_questtext_%d.pak", 0));
-        App.jhQuest = new IdxAndPak(jhQuestIdx, jhQuestPak);
+        App.jhQuest = new IdxAndPak("jhQuest", App.archive.getFile(IdxPaks.jhQuest.idx()), App.archive.getFile(IdxPaks.jhQuest.pak()));
         
         logger.info("Parsing JH_uwasatext");
-        ByteBuffer jhRumorIdx = App.archive.getFile(String.format("system/rom/JH_uwasatext_rom_%d.idx", 0));
-        ByteBuffer jhRumorPak = App.archive.getFile(String.format("system/rom/JH_uwasatext_%d.pak", 0));
-        App.jhRumor = new IdxAndPak(jhRumorIdx, jhRumorPak);
+        App.jhRumor = new IdxAndPak("jhRumor", App.archive.getFile(IdxPaks.jhRumor.idx()), App.archive.getFile(IdxPaks.jhRumor.pak()));
         
         logger.info("Parsing JH_freepapermes");
-        ByteBuffer jhNoticeIdx = App.archive.getFile(String.format("system/rom/JH_freepapermes_rom_%d.idx", 0));
-        ByteBuffer jhNoticePak = App.archive.getFile(String.format("system/rom/JH_freepapermes_%d.pak", 0));
-        App.jhNotice = new IdxAndPak(jhNoticeIdx, jhNoticePak);
+        App.jhNotice = new IdxAndPak("jhNotice", App.archive.getFile(IdxPaks.jhNotice.idx()), App.archive.getFile(IdxPaks.jhNotice.pak()));
         
         logger.info("Parsing ev_msg");
-        ByteBuffer evMsgIdx = App.archive.getFile(String.format("event/rom/ev_msg%d_rom.idx", 0));
-        ByteBuffer evMsgPak = App.archive.getFile(String.format("event/rom/ev_msg%d.pak", 0));
-        App.evMsg = new IdxAndPak(evMsgIdx, evMsgPak);
+        App.evMsg = new IdxAndPak("evMsg", App.archive.getFile(IdxPaks.evMsg.idx()), App.archive.getFile(IdxPaks.evMsg.pak()));
 
         logger.info("Parsing entrydata");
-        ByteBuffer entrydataIdx = App.archive.getFile("system/rom/entrydata_rom.idx");
-        ByteBuffer entrydataPak = App.archive.getFile("system/rom/entrydata.pak");
-        App.entrydata = new IdxAndPak(entrydataIdx, entrydataPak);
+        App.entrydata = new IdxAndPak("entrydata", App.archive.getFile(IdxPaks.entrydata.idx()), App.archive.getFile(IdxPaks.entrydata.pak()));
         
         logger.info("Parsing atl");
-        ByteBuffer atlIdx = App.archive.getFile("menu/atl_rom/atl_rom.idx");
-        ByteBuffer atlPak = App.archive.getFile("menu/atl_rom/atl.pak");
-        App.atl = new IdxAndPak(atlIdx, atlPak);
+        App.atl = new IdxAndPak("atl", App.archive.getFile(IdxPaks.atl.idx()), App.archive.getFile(IdxPaks.atl.pak()));
         
         logger.info("Parsing face");
-        ByteBuffer faceIdx = App.archive.getFile("menu/face_rom/face_rom.idx");
-        ByteBuffer facePak = App.archive.getFile("menu/face_rom/face.pak");
-        App.face = new IdxAndPak(faceIdx, facePak);
+        App.face = new IdxAndPak("face", App.archive.getFile(IdxPaks.face.idx()), App.archive.getFile(IdxPaks.face.pak()));
 
+        logger.info("Parsing mapData");
+        App.mapData = new IdxAndPak("mapData", App.archive.getFile(IdxPaks.mapData.idx()), App.archive.getFile(IdxPaks.mapData.pak()));
+
+        logger.info("Parsing texData");
+        App.texData = new IdxAndPak("texData", App.archive.getFile(IdxPaks.texData.idx()), App.archive.getFile(IdxPaks.texData.pak()));
+
+        logger.info("Parsing plttData");
+        App.plttData = new IdxAndPak("plttData", App.archive.getFile(IdxPaks.plttData.idx()), App.archive.getFile(IdxPaks.plttData.pak()));
 
         logger.info("Decoding NaUnitAnimTable");
         var animTable = App.archive.getFile("char/NaUnitAnimTable.bin");
@@ -377,6 +627,14 @@ public class MainController {
         jobRequirementTabController.loadJobRequirements();
         logger.info("Loading Equipment");
         equipmentTabController.loadEquipment();
+        logger.info("Loading Consumables");
+        consumableTabController.loadConsumables();
+        logger.info("Loading Loot");
+        lootTabController.loadLoot();
+        logger.info("Loading Item Tables");
+        itemTableTabController.loadItemTables();
+        logger.info("Loading Law Bonus");
+        lawBonusTabController.loadLawBonus();
         logger.info("Loading Formations");
         formationTabController.loadFormations();
         logger.info("Loading Quests");
@@ -409,7 +667,11 @@ public class MainController {
         saveAlert.setHeaderText(String.format("Save to \"%s\"?", lastSavePath.get().getPath()));
         var result = saveAlert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK)
+        {
             saveTo(lastSavePath.get());
+        } else {
+            setDim(false);
+        }
     }
 
     @FXML
@@ -417,24 +679,15 @@ public class MainController {
         if (romFile == null) return;
         setDim(true);
         FileChooser chooser = new FileChooser();
-        try {
-            File lastPath = Path.of(App.config.getProperty("lastPath")).toFile();
-            if (!lastPath.exists()) throw new FileNotFoundException("Last path doesn't exist");
-            chooser.setInitialDirectory(lastPath);
-        } catch (Exception e) {
-            App.config.setProperty("lastPath", System.getProperty("user.dir"));
-            chooser.setInitialDirectory(Path.of(System.getProperty("user.dir")).toFile());
-            System.err.println(e);
-        }
-
         chooser.setTitle("Save as");
         chooser.setInitialFileName(romFile.getName());
+        chooser.setInitialDirectory(App.getLastRomPath());
         File savePath = chooser.showSaveDialog(abilityTab.getScene().getWindow());
         if (savePath == null) {
             setDim(false);
             return;
         }
-        App.config.setProperty("lastPath", savePath.getParent());
+        App.saveLastRomPath(savePath);
         lastSavePath.set(savePath);
 
         saveTo(savePath);
@@ -485,6 +738,14 @@ public class MainController {
         jobRequirementTabController.saveJobRequirements();
         logger.info("Saving Equipment");
         equipmentTabController.saveEquipment();
+        logger.info("Saving Consumables");
+        consumableTabController.saveConsumables();
+        logger.info("Saving Loot");
+        lootTabController.saveLoot();
+        logger.info("Saving Item Tables");
+        itemTableTabController.saveItemTables();
+        logger.info("Saving Law Bonus");
+        lawBonusTabController.saveLawBonus();
         logger.info("Saving Formations");
         formationTabController.saveFormations();
         logger.info("Saving Quests");
@@ -494,102 +755,110 @@ public class MainController {
         logger.info("Saving Auctions");
         auctionTabController.saveAuctions();
 
+        //compareAfterSave();
+
         // Repack sub-archives
         logger.info("Repacking sysdata");
         Pair<ByteBuffer, ByteBuffer> sysdataIdxPak = App.sysdata.repack();
-        App.archive.setFile("system/rom/sysdata_rom.idx", sysdataIdxPak.getKey());
-        App.archive.setFile("system/rom/sysdata.pak", sysdataIdxPak.getValue());
+        App.archive.setFile(IdxPaks.sysdata.idx(), sysdataIdxPak.getKey());
+        App.archive.setFile(IdxPaks.sysdata.pak(), sysdataIdxPak.getValue());
 
         logger.info("Repacking UnitSst");
         Pair<ByteBuffer, ByteBuffer> sstIdxPak = App.unitSsts.repack();
-        App.archive.setFile("char/rom/rom_idx/UnitSst.rom_idx", sstIdxPak.getKey());
-        App.archive.setFile("char/rom/pak/UnitSst.pak", sstIdxPak.getValue());
+        App.archive.setFile(IdxPaks.unitSsts.idx(), sstIdxPak.getKey());
+        App.archive.setFile(IdxPaks.unitSsts.pak(), sstIdxPak.getValue());
         
         logger.info("Repacking UnitCg");
         Pair<ByteBuffer, ByteBuffer> cgIdxPak = App.unitCgs.repack();
-        App.archive.setFile("char/rom/rom_idx/UnitCg.rom_idx", cgIdxPak.getKey());
-        App.archive.setFile("char/rom/pak/UnitCg.pak", cgIdxPak.getValue());
+        App.archive.setFile(IdxPaks.unitCgs.idx(), cgIdxPak.getKey());
+        App.archive.setFile(IdxPaks.unitCgs.pak(), cgIdxPak.getValue());
         
         logger.info("Repacking JD_message");
         Pair<ByteBuffer, ByteBuffer> jdMessageIdxPak = App.jdMessage.repack();
-        App.archive.setFile(String.format("system/rom/JD_message_rom_%d.idx", 0), jdMessageIdxPak.getKey());
-        App.archive.setFile(String.format("system/rom/JD_message_%d.pak", 0), jdMessageIdxPak.getValue());
+        App.archive.setFile(IdxPaks.jdMessage.idx(), jdMessageIdxPak.getKey());
+        App.archive.setFile(IdxPaks.jdMessage.pak(), jdMessageIdxPak.getValue());
         
         logger.info("Repacking JH_questtext");
         Pair<ByteBuffer, ByteBuffer> jhQuestIdxPak = App.jhQuest.repack();
-        App.archive.setFile(String.format("system/rom/JH_questtext_rom_%d.idx", 0), jhQuestIdxPak.getKey());
-        App.archive.setFile(String.format("system/rom/JH_questtext_%d.pak", 0), jhQuestIdxPak.getValue());
+        App.archive.setFile(IdxPaks.jhQuest.idx(), jhQuestIdxPak.getKey());
+        App.archive.setFile(IdxPaks.jhQuest.pak(), jhQuestIdxPak.getValue());
         
         logger.info("Repacking JH_uwasatext");
         Pair<ByteBuffer, ByteBuffer> jhRumorIdxPak = App.jhRumor.repack();
-        App.archive.setFile(String.format("system/rom/JH_uwasatext_rom_%d.idx", 0), jhRumorIdxPak.getKey());
-        App.archive.setFile(String.format("system/rom/JH_uwasatext_%d.pak", 0), jhRumorIdxPak.getValue());
+        App.archive.setFile(IdxPaks.jhRumor.idx(), jhRumorIdxPak.getKey());
+        App.archive.setFile(IdxPaks.jhRumor.pak(), jhRumorIdxPak.getValue());
         
         logger.info("Repacking JH_freepapermes");
         Pair<ByteBuffer, ByteBuffer> jhNoticeIdxPak = App.jhNotice.repack();
-        App.archive.setFile(String.format("system/rom/JH_freepapermes_rom_%d.idx", 0), jhNoticeIdxPak.getKey());
-        App.archive.setFile(String.format("system/rom/JH_freepapermes_%d.pak", 0), jhNoticeIdxPak.getValue());
+        App.archive.setFile(IdxPaks.jhNotice.idx(), jhNoticeIdxPak.getKey());
+        App.archive.setFile(IdxPaks.jhNotice.pak(), jhNoticeIdxPak.getValue());
         
         logger.info("Repacking ev_msg");
         Pair<ByteBuffer, ByteBuffer> evMsgIdxPak = App.evMsg.repack();
-        App.archive.setFile(String.format("event/rom/ev_msg%d_rom.idx", 0), evMsgIdxPak.getKey());
-        App.archive.setFile(String.format("event/rom/ev_msg%d.pak", 0), evMsgIdxPak.getValue());
+        App.archive.setFile(IdxPaks.evMsg.idx(), evMsgIdxPak.getKey());
+        App.archive.setFile(IdxPaks.evMsg.pak(), evMsgIdxPak.getValue());
 
         logger.info("Repacking entrydata");
         Pair<ByteBuffer, ByteBuffer> entrydataIdxPak = App.entrydata.repack();
-        App.archive.setFile("system/rom/entrydata_rom.idx", entrydataIdxPak.getKey());
-        App.archive.setFile("system/rom/entrydata.pak", entrydataIdxPak.getValue());
+        App.archive.setFile(IdxPaks.entrydata.idx(), entrydataIdxPak.getKey());
+        App.archive.setFile(IdxPaks.entrydata.pak(), entrydataIdxPak.getValue());
 
         logger.info("Repacking atl");
         Pair<ByteBuffer, ByteBuffer> atlIdxPak = App.atl.repack();
-        App.archive.setFile("menu/atl_rom/atl_rom.idx", atlIdxPak.getKey());
-        App.archive.setFile("menu/atl_rom/atl.pak", atlIdxPak.getValue());
+        App.archive.setFile(IdxPaks.atl.idx(), atlIdxPak.getKey());
+        App.archive.setFile(IdxPaks.atl.pak(), atlIdxPak.getValue());
 
         logger.info("Repacking face");
         Pair<ByteBuffer, ByteBuffer> faceIdxPak = App.face.repack();
-        App.archive.setFile("menu/face_rom/face_rom.idx", faceIdxPak.getKey());
-        App.archive.setFile("menu/face_rom/face.pak", faceIdxPak.getValue());
+        App.archive.setFile(IdxPaks.face.idx(), faceIdxPak.getKey());
+        App.archive.setFile(IdxPaks.face.pak(), faceIdxPak.getValue());
 
+        logger.info("Repacking mapData");
+        Pair<ByteBuffer, ByteBuffer> mapDataIdxPak = App.mapData.repack();
+        App.archive.setFile(IdxPaks.mapData.idx(), mapDataIdxPak.getKey());
+        App.archive.setFile(IdxPaks.mapData.pak(), mapDataIdxPak.getValue());
+
+        logger.info("Repacking texData");
+        Pair<ByteBuffer, ByteBuffer> texDataIdxPak = App.texData.repack();
+        App.archive.setFile(IdxPaks.texData.idx(), texDataIdxPak.getKey());
+        App.archive.setFile(IdxPaks.texData.pak(), texDataIdxPak.getValue());
+
+        logger.info("Repacking plttData");
+        Pair<ByteBuffer, ByteBuffer> plttDataIdxPak = App.plttData.repack();
+        App.archive.setFile(IdxPaks.plttData.idx(), plttDataIdxPak.getKey());
+        App.archive.setFile(IdxPaks.plttData.pak(), plttDataIdxPak.getValue());
         
         logger.info("Saving NaUnitAnimTable");
         ByteBuffer encodedTable = LZSS.encode(App.naUnitAnimTable.rewind());
-        ByteBuffer newTable = ByteBuffer.allocate(encodedTable.capacity()+4);
+        int padding = 0;
+        if (encodedTable.capacity() % 4 != 0) {
+            logger.info("Padding NaUnitAnimTable");
+            padding = 4 - (encodedTable.capacity() % 4);
+        }
+        ByteBuffer newTable = ByteBuffer.allocate(encodedTable.capacity() + 4 + padding);
         newTable.putInt(encodedTable.getShort(1));
         newTable.put(encodedTable);
         App.archive.setFile("char/NaUnitAnimTable.bin", newTable);
 
         // Repack archive
         logger.info("Repacking archive");
-        ByteBuffer newIdx = ByteBuffer.allocate(256*1024*1024).order(ByteOrder.LITTLE_ENDIAN);
-        ByteBuffer newBin = ByteBuffer.allocate(256*1024*1024).order(ByteOrder.LITTLE_ENDIAN);
-        App.archive.repack(newIdx, newBin);
+        var archivePair = App.archive.repack();
+        ByteBuffer newIdx = archivePair.getKey();
+        ByteBuffer newBin = archivePair.getValue();
         System.out.println("Archive successfully repacked");
 
-        Path dataPath = Path.of("data");
-        File pcIdx = dataPath.resolve("data\\master\\pc.idx").toFile();
-        File pcBin = dataPath.resolve("data\\master\\pc.bin").toFile();
-        File arm9 = dataPath.resolve("arm9.bin").toFile();
-        File overlay11 = dataPath.resolve("overlay\\overlay_0011.bin").toFile();
+        Path pcIdx = dataPath.resolve("data/master/pc.idx");
+        Path pcBin = dataPath.resolve("data/master/pc.bin");
+        Path arm9 = dataPath.resolve("arm9.bin");
+        Path overlay11 = dataPath.resolve("overlay/overlay_0011.bin");
 
-
-        FileOutputStream newIdxStream = new FileOutputStream(pcIdx);
-        newIdxStream.write(newIdx.array(), 0, newIdx.position());
-        newIdxStream.close();
-        
-        FileOutputStream newBinStream = new FileOutputStream(pcBin);
-        newBinStream.write(newBin.array(), 0, newBin.position());
-        newBinStream.close();
-
-        FileOutputStream newArm9Stream = new FileOutputStream(arm9);
-        newArm9Stream.write(App.arm9.array());
-        newArm9Stream.close();
-
-        FileOutputStream newOverlay11Stream = new FileOutputStream(overlay11);
-        newOverlay11Stream.write(App.overlay11.array());
-        newOverlay11Stream.close();
+        Files.write(pcIdx, newIdx.array());
+        Files.write(pcBin, newBin.array());
+        Files.write(arm9, App.arm9.array());
+        Files.write(overlay11, App.overlay11.array());
 
         logger.info("Repacking rom with ndstool");
-        ProcessBuilder ndsTool = new ProcessBuilder("ndstool.exe", "-c", savePath.toPath().toString(),
+        ProcessBuilder ndsTool = new ProcessBuilder("ndstool", "-c", savePath.toPath().toString(),
                                             "-9", dataPath.resolve("arm9.bin").toString(),
                                             "-7", dataPath.resolve("arm7.bin").toString(),
                                             "-y9", dataPath.resolve("y9.bin").toString(),
@@ -603,4 +872,290 @@ public class MainController {
         ndsTool.start().waitFor();
     }
 
+    
+    @FXML
+    private void resetTextFileSelector() {
+        if (App.archive == null) return;
+        setDim(true);
+
+        Alert confirmAlert = new Alert(AlertType.CONFIRMATION);
+        confirmAlert.setContentText("This fix is for ROMs saved with editors older than v1.3.2 which had a text encoding bug that replaced \"*\" with \"ー\".\nThis will load text from an original ROM to reset affected text.");
+        confirmAlert.setHeaderText("Fix pre-v1.3.2 text encoding bug");
+
+        var result = confirmAlert.showAndWait();
+
+        if (!result.isPresent() || result.get() != ButtonType.OK) {
+            setDim(false);
+            return;
+        }
+
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Open Original ROM");
+        chooser.setInitialDirectory(App.getLastRomPath());
+        File loadPath = chooser.showOpenDialog(abilityTab.getScene().getWindow());
+        if (loadPath == null) {
+            setDim(false);
+            return;
+        }
+        try {
+            resetText(loadPath);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, String.format("Failed to reset text"), e);
+            System.err.println(e);
+            Alert loadAlert = new Alert(AlertType.ERROR);
+            loadAlert.setTitle("Resetting text");
+            loadAlert.setHeaderText("Reset failed");
+            loadAlert.setContentText(e.toString());
+            loadAlert.show();
+        } finally {
+            setDim(false);
+        }
+    }
+
+
+    public void resetText(File loadPath) throws Exception {
+        logger.info("Unpacking rom with ndstool");
+        romFile = loadPath;
+        
+        Path vanillaDataPath = Files.createTempDirectory(Path.of("."), loadPath.getName());
+        Runtime.getRuntime().addShutdownHook((new Thread() {
+            @Override
+            public void run() {
+                try (var stream = Files.walk(vanillaDataPath)) {
+                    stream.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+                    
+                } catch (Exception e) {
+                    System.err.println(String.format("Failed to delete temp folder %s", dataPath));
+                }
+            }
+        }));
+        ProcessBuilder ndsTool = new ProcessBuilder("ndstool", "-x", loadPath.toPath().toString(),
+                                               "-9", vanillaDataPath.resolve("arm9.bin").toString(),
+                                               "-7", vanillaDataPath.resolve("arm7.bin").toString(),
+                                               "-y9", vanillaDataPath.resolve("y9.bin").toString(),
+                                               "-y7", vanillaDataPath.resolve("y7.bin").toString(),
+                                               "-d", vanillaDataPath.resolve("data").toString(),
+                                               "-y", vanillaDataPath.resolve("overlay").toString(),
+                                               "-t", vanillaDataPath.resolve("banner.bin").toString(),
+                                               "-h", vanillaDataPath.resolve("header.bin").toString());
+        ndsTool.redirectOutput(Redirect.INHERIT);
+        ndsTool.redirectError(Redirect.INHERIT);
+        Files.createDirectories(vanillaDataPath);
+        ndsTool.start().waitFor();
+
+        logger.info("Parsing archive");
+        File pcIdx = vanillaDataPath.resolve("data/master/pc.idx").toFile();
+        File pcBin = vanillaDataPath.resolve("data/master/pc.bin").toFile();
+        
+        Archive vanillaArchive = new Archive(pcIdx, pcBin);
+
+        logger.info("Parsing JD_message");
+        IdxAndPak jdMessage = new IdxAndPak("jdMessage", vanillaArchive.getFile(IdxPaks.jdMessage.idx()), vanillaArchive.getFile(IdxPaks.jdMessage.pak()));
+
+        logger.info("Parsing JH_questtext");
+        IdxAndPak jhQuest = new IdxAndPak("jhQuest", vanillaArchive.getFile(IdxPaks.jhQuest.idx()), vanillaArchive.getFile(IdxPaks.jhQuest.pak()));
+        
+        logger.info("Parsing JH_uwasatext");
+        IdxAndPak jhRumor = new IdxAndPak("jhRumor", vanillaArchive.getFile(IdxPaks.jhRumor.idx()), vanillaArchive.getFile(IdxPaks.jhRumor.pak()));
+        
+        logger.info("Parsing JH_freepapermes");
+        IdxAndPak jhNotice = new IdxAndPak("jhNotice", vanillaArchive.getFile(IdxPaks.jhNotice.idx()), vanillaArchive.getFile(IdxPaks.jhNotice.pak()));
+        
+        logger.info("Parsing ev_msg");
+        IdxAndPak evMsg = new IdxAndPak("evMsg", vanillaArchive.getFile(IdxPaks.evMsg.idx()), vanillaArchive.getFile(IdxPaks.evMsg.pak()));
+
+        int numAffected = 0;
+        for (int i = 0; i < jdMessage.numFiles(); i++) {
+            ByteBuffer stringTableBytes = jdMessage.getFile(i);
+            if (stringTableBytes == null || stringTableBytes.rewind().remaining() == 0) {
+                continue;
+            }
+
+            StringTable vanillaStringTable = new StringTable(stringTableBytes, new SimpleStringProperty(MessageId.messageNames[i]), i);
+
+            int curr = i;
+            var stringTable = textTabController.messageList.getItems().filtered(x -> x.id == curr).getFirst();
+            var filtered = vanillaStringTable.strings.filtered(x -> x.string().getValue().contains("*"));
+            numAffected += filtered.size();
+            filtered.forEach(x -> stringTable.strings.get(x.id()).string().set(x.string().get()));
+        }
+
+        // The only instance of ` in the game apparently
+        numAffected++;
+        textTabController.messageList.getItems().get(0x15).strings.get(0x15).string().setValue("`");
+
+        for (int i = 0; i < evMsg.numFiles(); i++) {
+            ByteBuffer stringTableBytes = evMsg.getFile(i);
+            if (stringTableBytes == null || stringTableBytes.rewind().remaining() == 0) {
+                continue;
+            }
+
+            StringTable vanillaStringTable = new StringTable(stringTableBytes, new SimpleStringProperty("Unknown"), i);
+
+            int curr = i;
+            var stringTable = textTabController.eventMsgList.getItems().filtered(x -> x.id == curr).getFirst();
+            var filtered = vanillaStringTable.strings.filtered(x -> x.string().getValue().contains("*"));
+            numAffected += filtered.size();
+            filtered.forEach(x -> stringTable.strings.get(x.id()).string().set(x.string().get()));
+        }
+
+        for (int i = 0; i < jhQuest.numFiles(); i++) {
+            ByteBuffer stringTableBytes = jhQuest.getFile(i);
+            if (stringTableBytes == null || stringTableBytes.rewind().remaining() == 0) {
+                continue;
+            }
+
+            StringSingle vanillaStringTable = new StringSingle(stringTableBytes, App.questNames.get(i).string(), i);
+
+            int curr = i;
+            var stringTable = textTabController.questList.getItems().filtered(x -> x.id == curr).getFirst();
+            if (vanillaStringTable.text.getValue().contains("*")) {
+                numAffected++;
+                stringTable.text.set(vanillaStringTable.text.get());
+            }
+        }
+
+        for (int i = 0; i < jhRumor.numFiles(); i++) {
+            ByteBuffer stringTableBytes = jhRumor.getFile(i);
+            if (stringTableBytes == null || stringTableBytes.rewind().remaining() == 0) {
+                continue;
+            }
+
+            StringSingle vanillaStringTable = new StringSingle(stringTableBytes, App.rumorNames.get(i).string(), i);
+
+            int curr = i;
+            var stringTable = textTabController.rumorList.getItems().filtered(x -> x.id == curr).getFirst();
+            if (vanillaStringTable.text.getValue().contains("*")) {
+                numAffected++;
+                stringTable.text.set(vanillaStringTable.text.get());
+            }
+        }
+
+        for (int i = 0; i < jhNotice.numFiles(); i++) {
+            ByteBuffer stringTableBytes = jhNotice.getFile(i);
+            if (stringTableBytes == null || stringTableBytes.rewind().remaining() == 0) {
+                continue;
+            }
+
+            StringSingle vanillaStringTable = new StringSingle(stringTableBytes, App.noticeNames.get(i).string(), i);
+
+            int curr = i;
+            var stringTable = textTabController.noticeList.getItems().filtered(x -> x.id == curr).getFirst();
+            if (vanillaStringTable.text.getValue().contains("*")) {
+                numAffected++;
+                stringTable.text.set(vanillaStringTable.text.get());
+            }
+        }
+        System.out.println(String.format("Reset %d strings", numAffected));
+        
+    }
+
+    private void exportSpritesSelector(ExportImageFlags exportFlags) {
+        if (romFile == null) return;
+        setDim(true);
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Export to");
+        chooser.setInitialDirectory(App.getLastFile());
+        File savePath = chooser.showDialog(abilityTab.getScene().getWindow());
+        if (savePath == null) {
+            setDim(false);
+            return;
+        }
+        App.saveLastFile(savePath);
+
+
+        exportSprites(savePath.toPath(), exportFlags);
+    }
+
+    private void exportSprites(Path savePath, ExportImageFlags exportFlags) {
+
+        Alert saveAlert = new Alert(AlertType.NONE);
+        saveAlert.setTitle(String.format("Exporting to %s", savePath));
+        saveAlert.setHeaderText("Exporting. Please wait.");
+        saveAlert.show();
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (exportFlags.getUnitSprites()) exportUnitSprites(savePath.resolve("Unit Sprites"));
+                if (exportFlags.getTopSprites()) exportTopSprites(savePath.resolve("Top Sprites"));
+                if (exportFlags.getFaces()) exportFaceSprites(savePath.resolve("Faces"));
+                if (exportFlags.getMapTextures()) exportMapTextures(savePath.resolve("Map Textures"));
+                if (exportFlags.getMaps()) exportMaps(savePath.resolve("Maps"));
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    logger.log(Level.SEVERE, String.format("Failed to export"), e);
+                    setDim(false);
+                    saveAlert.setAlertType(AlertType.ERROR);
+                    saveAlert.setHeaderText("Failed to export");
+                    saveAlert.setContentText(e.getMessage());
+                    saveAlert.getDialogPane().getScene().getWindow().sizeToScene();
+                });
+                return;
+            }
+            Platform.runLater(() -> {
+                setDim(false);
+                saveAlert.setAlertType(AlertType.INFORMATION);
+                saveAlert.setHeaderText("Exported");
+            });
+        });
+    }
+
+    private void exportUnitSprites(Path savePath) throws IOException {
+        for (UnitSprite unitSprite : spritesTabController.unitList.getItems()) {
+            Path unitPath = savePath.resolve(Integer.toString(unitSprite.unitIndex));
+            for (int p = 0; p < unitSprite.spritePalettes.palettes.size(); p++) {
+                Path palettePath = unitPath.resolve(Integer.toString(p));
+                Files.createDirectories(palettePath);
+                for (int s = 0; s < unitSprite.spriteData.spriteMaps.size(); s++) {
+                    Path imagePath = palettePath.resolve(String.format("%d.png", s));
+                    BufferedImage image = unitSprite.getSprite(s, p);
+                    ImageIO.write(image, "png", imagePath.toFile());
+                }
+            }
+        }
+    }
+
+    private void exportTopSprites(Path savePath) throws IOException {
+        for (TopSprite topSprite : spritesTabController.topSpriteList.getItems()) {
+            if (topSprite.id == 0) continue;
+            Path unitPath = savePath.resolve(Integer.toString(topSprite.id));
+            Files.createDirectories(unitPath);
+            for (int s = 0; s < topSprite.sprites.size(); s++) {
+                Path imagePath = unitPath.resolve(String.format("%d.png", s));
+                BufferedImage image = topSprite.getSprite(s);
+                ImageIO.write(image, "png", imagePath.toFile());
+            }
+        }
+    }
+    public void exportFaceSprites(Path savePath) throws IOException {
+        Files.createDirectories(savePath);
+        for (UnitFace face : spritesTabController.faceList.getItems()) {
+            if (face.id == 0) continue;
+            Path imagePath = savePath.resolve(String.format("%d.png", face.id));
+            BufferedImage image = face.getImage();
+            ImageIO.write(image, "png", imagePath.toFile());
+        }
+    }
+    
+    public void exportMapTextures(Path savePath) throws IOException {
+        Files.createDirectories(savePath);
+        for (MapData map : spritesTabController.mapList) {
+            for (int i = 0; i < map.palettes.length; i++) {
+                Path imagePath = savePath.resolve(String.format("%d %d.png", map.id, i));
+                BufferedImage image = map.getTexture(i);
+                ImageIO.write(image, "png", imagePath.toFile());
+            }
+        }
+    }
+    
+    public void exportMaps(Path savePath) throws IOException {
+        Files.createDirectories(savePath);
+        for (MapData map : spritesTabController.mapList) {
+            for (int i = 0; i < map.palettes.length; i++) {
+                Path imagePath = savePath.resolve(String.format("%d %d.png", map.id, i));
+                BufferedImage image = map.getImage(i);
+                ImageIO.write(image, "png", imagePath.toFile());
+            }
+        }
+    }
 }

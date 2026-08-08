@@ -2,12 +2,14 @@ package org.ruru.ffta2editor.model.formation;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.logging.Logger;
 
 import org.ruru.ffta2editor.App;
 import org.ruru.ffta2editor.model.ability.AbilityData;
 import org.ruru.ffta2editor.model.ability.SPAbilityData;
 import org.ruru.ffta2editor.model.character.CharacterData;
 import org.ruru.ffta2editor.model.item.EquipmentData;
+import org.ruru.ffta2editor.model.item.ItemTable;
 import org.ruru.ffta2editor.model.job.AbilitySet;
 import org.ruru.ffta2editor.model.job.JobData;
 
@@ -18,6 +20,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 public class FormationUnit {
+    private static Logger logger = Logger.getLogger("org.ruru.ffta2editor");
+
     public StringProperty nameString = new SimpleStringProperty();
 
     public ObjectProperty<CharacterData> character = new SimpleObjectProperty<>();
@@ -43,6 +47,7 @@ public class FormationUnit {
     public ObjectProperty<AbilityData> primaryAbility6 = new SimpleObjectProperty<>();
     
     public ObjectProperty<AbilitySet> secondaryAbilitySet = new SimpleObjectProperty<>();
+    public ObjectProperty<Byte>       _0x1b = new SimpleObjectProperty<>();
     public ObjectProperty<AbilityData> secondaryAbility1 = new SimpleObjectProperty<>();
     public ObjectProperty<AbilityData> secondaryAbility2 = new SimpleObjectProperty<>();
     public ObjectProperty<AbilityData> secondaryAbility3 = new SimpleObjectProperty<>();
@@ -59,16 +64,16 @@ public class FormationUnit {
 
     public ObjectProperty<Byte> _0x32 = new SimpleObjectProperty<>();
     public ObjectProperty<Byte> _0x33 = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> lootLevel1 = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> lootLevel2 = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> lootLevel3 = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> lootLevel4 = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> lootConsumable = new SimpleObjectProperty<>();
-    public ObjectProperty<Byte> lootGil = new SimpleObjectProperty<>();
+    public ObjectProperty<ItemTable> lootLevel1 = new SimpleObjectProperty<>();
+    public ObjectProperty<ItemTable> lootLevel2 = new SimpleObjectProperty<>();
+    public ObjectProperty<ItemTable> lootLevel3 = new SimpleObjectProperty<>();
+    public ObjectProperty<ItemTable> lootLevel4 = new SimpleObjectProperty<>();
+    public ObjectProperty<ItemTable> lootConsumable = new SimpleObjectProperty<>();
+    public ObjectProperty<ItemTable> lootGil = new SimpleObjectProperty<>();
     public ObjectProperty<Byte> faction = new SimpleObjectProperty<>();
     public ObjectProperty<Byte> _0x3b = new SimpleObjectProperty<>();
 
-    public FormationUnit(ByteBuffer bytes) {
+    public FormationUnit(ByteBuffer bytes, int id, int formationId) {
 
         character.set(App.characterList.get(Byte.toUnsignedInt(bytes.get())));
         job.set(App.jobDataList.get(Byte.toUnsignedInt(bytes.get())));
@@ -91,8 +96,19 @@ public class FormationUnit {
         primaryAbility4.set(App.abilityList.get(Short.toUnsignedInt(bytes.getShort())));
         primaryAbility5.set(App.abilityList.get(Short.toUnsignedInt(bytes.getShort())));
         primaryAbility6.set(App.abilityList.get(Short.toUnsignedInt(bytes.getShort())));
+
+        int abilitySetIndex = Byte.toUnsignedInt(bytes.get());
+        if (abilitySetIndex < App.abilitySetList.size()) {
+            secondaryAbilitySet.set(App.abilitySetList.get(abilitySetIndex));
+        } else {
+            String warningMessage = String.format("Formation %d, Unit %d: secondary Ability Set %d not found. Defaulting to 0", formationId, id, abilitySetIndex);
+            logger.warning(warningMessage);
+            App.loadWarningList.add(warningMessage);
+            secondaryAbilitySet.set(App.abilitySetList.get(0));
+        }
+
+        _0x1b.set(bytes.get()); // TODO: Create GUI field
         
-        secondaryAbilitySet.set(App.abilitySetList.get(Short.toUnsignedInt(bytes.getShort())));
         secondaryAbility1.set(App.abilityList.get(Short.toUnsignedInt(bytes.getShort())));
         secondaryAbility2.set(App.abilityList.get(Short.toUnsignedInt(bytes.getShort())));
         secondaryAbility3.set(App.abilityList.get(Short.toUnsignedInt(bytes.getShort())));
@@ -104,14 +120,12 @@ public class FormationUnit {
         } else {
             reactionAbility.set(App.reactionAbilityList.get(0));
         }
-        //reactionAbility.set(App.reactionAbilityList.filtered(x -> x.id == reactionAbilityId).getFirst());
         final int passiveAbilityId = Short.toUnsignedInt(bytes.getShort());
         if (passiveAbilityId != 0){
             passiveAbility.set((SPAbilityData)App.abilityList.get(passiveAbilityId));
         } else {
             passiveAbility.set(App.passiveAbilityList.get(0));
         }
-        //passiveAbility.set(App.passiveAbilityList.filtered(x -> x.id == passiveAbilityId).getFirst());
 
         equipment1.set(App.equipmentList.get(Short.toUnsignedInt(bytes.getShort())));
         equipment2.set(App.equipmentList.get(Short.toUnsignedInt(bytes.getShort())));
@@ -121,12 +135,12 @@ public class FormationUnit {
     
         _0x32.set(bytes.get());
         _0x33.set(bytes.get());
-        lootLevel1.set(bytes.get());
-        lootLevel2.set(bytes.get());
-        lootLevel3.set(bytes.get());
-        lootLevel4.set(bytes.get());
-        lootConsumable.set(bytes.get());
-        lootGil.set(bytes.get());
+        lootLevel1.set(App.itemTableList.get(Byte.toUnsignedInt(bytes.get())));
+        lootLevel2.set(App.itemTableList.get(Byte.toUnsignedInt(bytes.get())));
+        lootLevel3.set(App.itemTableList.get(Byte.toUnsignedInt(bytes.get())));
+        lootLevel4.set(App.itemTableList.get(Byte.toUnsignedInt(bytes.get())));
+        lootConsumable.set(App.itemTableList.get(Byte.toUnsignedInt(bytes.get())));
+        lootGil.set(App.itemTableList.get(Byte.toUnsignedInt(bytes.get())));
         faction.set(bytes.get());
         _0x3b.set(bytes.get());
 
@@ -136,7 +150,7 @@ public class FormationUnit {
             protected String computeValue() {
                 int index = Short.toUnsignedInt(name.getValue());
                 if (index < App.characterNames.size()) {
-                    return App.characterNames.get(index).getValue();
+                    return App.characterNames.get(index).string().getValue();
                 } else {
                     return "";
                 }
@@ -185,12 +199,12 @@ public class FormationUnit {
     
         _0x32.set((byte)0);
         _0x33.set((byte)0);
-        lootLevel1.set((byte)0);
-        lootLevel2.set((byte)0);
-        lootLevel3.set((byte)0);
-        lootLevel4.set((byte)0);
-        lootConsumable.set((byte)0);
-        lootGil.set((byte)0);
+        lootLevel1.set(App.itemTableList.get(0));
+        lootLevel2.set(App.itemTableList.get(0));
+        lootLevel3.set(App.itemTableList.get(0));
+        lootLevel4.set(App.itemTableList.get(0));
+        lootConsumable.set(App.itemTableList.get(0));
+        lootGil.set(App.itemTableList.get(0));
         faction.set((byte)0);
         _0x3b.set((byte)0);
 
@@ -200,7 +214,7 @@ public class FormationUnit {
             protected String computeValue() {
                 int index = Short.toUnsignedInt(name.getValue());
                 if (index < App.characterNames.size()) {
-                    return App.characterNames.get(index).getValue();
+                    return App.characterNames.get(index).string().getValue();
                 } else {
                     return "";
                 }
@@ -250,12 +264,12 @@ public class FormationUnit {
     
         buffer.put(_0x32.getValue());
         buffer.put(_0x33.getValue());
-        buffer.put(lootLevel1.getValue());
-        buffer.put(lootLevel2.getValue());
-        buffer.put(lootLevel3.getValue());
-        buffer.put(lootLevel4.getValue());
-        buffer.put(lootConsumable.getValue());
-        buffer.put(lootGil.getValue());
+        buffer.put((byte)lootLevel1.getValue().id);
+        buffer.put((byte)lootLevel2.getValue().id);
+        buffer.put((byte)lootLevel3.getValue().id);
+        buffer.put((byte)lootLevel4.getValue().id);
+        buffer.put((byte)lootConsumable.getValue().id);
+        buffer.put((byte)lootGil.getValue().id);
         buffer.put(faction.getValue());
         buffer.put(_0x3b.getValue());
 

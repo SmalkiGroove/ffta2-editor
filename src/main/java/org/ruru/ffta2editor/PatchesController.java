@@ -35,6 +35,7 @@ public class PatchesController {
     public static BooleanProperty patchedSignedEquipmentStats = new SimpleBooleanProperty();
     public static BooleanProperty patchedStartingMp = new SimpleBooleanProperty();
     public static BooleanProperty patchedSequencerPeytral = new SimpleBooleanProperty();
+    public static BooleanProperty patchedAllConsumablesBuyable = new SimpleBooleanProperty();
     
     public static IntegerProperty maxLevel = new SimpleIntegerProperty();
     
@@ -98,6 +99,8 @@ public class PatchesController {
     @FXML ToggleButton expandedTopSprites;
     @FXML ToggleButton signedEquipmentStats;
     @FXML ToggleButton startingMp;
+    @FXML ToggleButton sequencerPeytral;
+    @FXML ToggleButton allConsumablesBuyable;
 
     @FXML
     private void applyAnimationFix() {
@@ -430,22 +433,24 @@ public class PatchesController {
             arm9Patches.add(new PatchElement(0x00111e20, 0xe3a00000, 0xe1a00000)); // mov r0, 0x0 -> nop
             arm9Patches.add(new PatchElement(0x00111e48, 0xe58d0018, 0xe3a00001)); // str r0, [sp, local_50] -> mov r0, 0x1
 
-            // LOWER BOUNDARY (replace useless code)
+            // Lower bounds (replace duplicated code)
             arm9Patches.add(new PatchElement(0x000b9a04, 0xea00000c, 0xea000015)); // b LAB_020b9a3c -> LAB_020b9a60
-            arm9Patches.add(new PatchElement(0x000b9a08, 0xea00000c, 0xea000014)); // b LAB_020b9a48 -> LAB_020b9a60
-            arm9Patches.add(new PatchElement(0x000b9a0c, 0xea00000c, 0xea000013)); // b LAB_020b9a54 -> LAB_020b9a60
-            // move/jump
-            arm9Patches.add(new PatchElement(0x000b9d08, 0xe1570006, 0xeaffff4f)); // cmp r7, r6 -> b 020b9a3c
+            arm9Patches.add(new PatchElement(0x000b9a08, 0xea00000e, 0xea000014)); // b LAB_020b9a48 -> LAB_020b9a60
+            arm9Patches.add(new PatchElement(0x000b9a0c, 0xea000010, 0xea000013)); // b LAB_020b9a54 -> LAB_020b9a60
+            // Job-dependent stats except Evasion (Move/Jump + other)
+            arm9Patches.add(new PatchElement(0x000b9d08, 0xe1570006, 0xebffff4b)); // cmp r7, r6 -> bl 020b9a3c
             arm9Patches.add(new PatchElement(0x000b9a3c, 0xe59d0004, 0xe3570001)); // ... -> cmp r7, 0x1
-            arm9Patches.add(new PatchElement(0x000b9a40, 0xe2606ffa, 0x33a07001)); // ... -> movlo r7, 0x1
+            arm9Patches.add(new PatchElement(0x000b9a40, 0xe2606ffa, 0xb3a07001)); // ... -> movlt r7, 0x1
             arm9Patches.add(new PatchElement(0x000b9a44, 0xea000007, 0xe1570006)); // ... -> cmp r7, r6
-            arm9Patches.add(new PatchElement(0x000b9a48, 0xe59d0004, 0xea0000b3)); // ... -> b 020b9d0c
-            // evasion
-            arm9Patches.add(new PatchElement(0x000b9ce4, 0xe1570006, 0xeaffff58)); // cmp r7, r6 -> b 020b9a4c
+            arm9Patches.add(new PatchElement(0x000b9a48, 0xe59d0004, 0xe1a0f00e)); // ... -> mov pc, lr
+            // Evasion
+            arm9Patches.add(new PatchElement(0x000b9ce4, 0xe1570006, 0xebffff58)); // cmp r7, r6 -> bl 020b9a4c
             arm9Patches.add(new PatchElement(0x000b9a4c, 0xe2606ffa, 0xe3570000)); // ... -> cmp r7, 0x0
-            arm9Patches.add(new PatchElement(0x000b9a50, 0xea000004, 0x33a07000)); // ... -> movlo r7, 0x0
+            arm9Patches.add(new PatchElement(0x000b9a50, 0xea000004, 0xb3a07000)); // ... -> movlt r7, 0x0
             arm9Patches.add(new PatchElement(0x000b9a54, 0xe59d0004, 0xe1570006)); // ... -> cmp r7, r6
-            arm9Patches.add(new PatchElement(0x000b9a58, 0xe2606ffa, 0xea0000a6)); // ... -> b 020b9ce8
+            arm9Patches.add(new PatchElement(0x000b9a58, 0xe2606ffa, 0xe1a0f00e)); // ... -> mov pc, lr
+            // Job-independent stats (Attack/Defense/Magick/Resistance/Speed + more)
+            arm9Patches.add(new PatchElement(0x000b9cb4, 0xe1570006, 0xebffff60)); // cmp r7, r6 -> bl 020b9a3c
 
             
             // The value is already flipped
@@ -664,18 +669,39 @@ public class PatchesController {
         }
     }
 
+    @FXML 
+    public void applyAllConsumablesBuyablePatch() {
+        if (App.archive != null) {
+            List<PatchElement> arm9Patches = new ArrayList<>();
+
+            arm9Patches.add(new PatchElement(0x00108484, 0xe59f1058, 0xea00000a)); // ldr r1, [DAT_021084e4] -> b LAB_021084b4
+            
+            boolean newValue = patchedAllConsumablesBuyable.getValue();
+            applyPatchElements(arm9Patches, App.arm9, newValue);
+            String alertText = newValue ? "Patch applied" : "Patch removed";
+
+            Alert loadAlert = new Alert(AlertType.INFORMATION);
+            loadAlert.setTitle("All consumables buyable patch");
+            loadAlert.setHeaderText(alertText);
+            loadAlert.show();
+        }
+    }
+
     public void loadPatches() {
         patchedExpandedTopSprites.set(App.arm9.getInt(0x000b5ab4) != 0xe5d00018);
         patchedSignedEquipmentStats.set(App.arm9.getInt(0x000cfcd8) != 0xe5d01017);
         patchedStartingMp.set(App.arm9.getInt(0x000b9180) != 0xe3a01000);
         patchedSequencerPeytral.set(App.arm9.getInt(0x000b9b40) != 0xe358003f);
+        patchedAllConsumablesBuyable.set(App.arm9.getInt(0x00108484) != 0xe59f1058);
         maxLevel.set(App.arm9.get(0x000b9094));
+
         
         
         expandedTopSprites.selectedProperty().bindBidirectional(patchedExpandedTopSprites);
         signedEquipmentStats.selectedProperty().bindBidirectional(patchedSignedEquipmentStats);
         startingMp.selectedProperty().bindBidirectional(patchedStartingMp);
         sequencerPeytral.selectedProperty().bindBidirectional(patchedSequencerPeytral);
+        allConsumablesBuyable.selectedProperty().bindBidirectional(patchedAllConsumablesBuyable);
     }
     
     public void applyPatches() {

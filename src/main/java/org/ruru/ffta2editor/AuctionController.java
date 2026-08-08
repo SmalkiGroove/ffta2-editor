@@ -8,6 +8,9 @@ import java.util.logging.Logger;
 
 import org.ruru.ffta2editor.EquipmentController.ItemCell;
 import org.ruru.ffta2editor.TextController.StringPropertyCell;
+import org.ruru.ffta2editor.TextController.StringWithId;
+import org.ruru.ffta2editor.TextController.StringWithIdCell;
+import org.ruru.ffta2editor.model.auction.AuctionVanillaData;
 import org.ruru.ffta2editor.model.auction.AuctionInfo;
 import org.ruru.ffta2editor.model.auction.AuctionPrizeTable;
 import org.ruru.ffta2editor.model.auction.AuctionPrizeTable.AuctionPrizeItem;
@@ -99,9 +102,9 @@ public class AuctionController {
 
     // Auction Info
     // AutoCompleteComboBox
-    @FXML ComboBox<StringProperty> region;
-    @FXML ComboBox<StringProperty> otherRegion1;
-    @FXML ComboBox<StringProperty> otherRegion2;
+    @FXML ComboBox<StringWithId> region;
+    @FXML ComboBox<StringWithId> otherRegion1;
+    @FXML ComboBox<StringWithId> otherRegion2;
 
     // Short
     @FXML TextField auctionStoryRequirement;
@@ -317,13 +320,27 @@ public class AuctionController {
 
             logger.info("Loading Auction Grand Prize Tables");
             int numAuctionGrandPrizeTables = Byte.toUnsignedInt(App.arm9.get(0x000cb840))+1;
-            for (int i = 0; i < numAuctionGrandPrizeTables; i++) {
-                try {
-                    AuctionPrizeTable auctionGrandPrizeTableData = new AuctionPrizeTable(auctionGrandPrizeTableBytes, i);
+            if (auctionGrandPrizeTableBytes.remaining() / 0x20 != numAuctionGrandPrizeTables) {
+                logger.log(Level.WARNING, "Resetting Grand Prizes");
+                System.out.println("Resetting Grand Prizes");
+                for (int i = 0; i < AuctionVanillaData.grandPrizes.length; i++) {
+                    AuctionPrizeTable auctionGrandPrizeTableData = new AuctionPrizeTable(i);
+                    var items = AuctionVanillaData.grandPrizes[i];
+                    for (int j = 0; j < items.length; j++) {
+                        var vanillaItem = items[j];
+                        auctionGrandPrizeTableData.prizes.set(j, new AuctionPrizeItem(vanillaItem[0], vanillaItem[1]));
+                    }
                     auctionGrandPrizeTableDataList.add(auctionGrandPrizeTableData);
-                } catch (Exception e) {
-                    logger.log(Level.SEVERE, String.format("Failed to load Auction Grand Prize Table %d", i));
-                    throw e;
+                }
+            } else {
+                for (int i = 0; i < numAuctionGrandPrizeTables; i++) {
+                    try {
+                        AuctionPrizeTable auctionGrandPrizeTableData = new AuctionPrizeTable(auctionGrandPrizeTableBytes, i);
+                        auctionGrandPrizeTableDataList.add(auctionGrandPrizeTableData);
+                    } catch (Exception e) {
+                        logger.log(Level.SEVERE, String.format("Failed to load Auction Grand Prize Table %d", i));
+                        throw e;
+                    }
                 }
             }
             App.auctionGrandPrizeTableList = auctionGrandPrizeTableDataList;
@@ -367,16 +384,16 @@ public class AuctionController {
             grandPrize.setButtonCell(new ItemCell<>());
 
             region.setItems(App.regionNames);
-            region.setCellFactory(x -> new StringPropertyCell());
-            region.setButtonCell(new StringPropertyCell());
+            region.setCellFactory(x -> new StringWithIdCell());
+            region.setButtonCell(new StringWithIdCell());
 
             otherRegion1.setItems(App.regionNames);
-            otherRegion1.setCellFactory(x -> new StringPropertyCell());
-            otherRegion1.setButtonCell(new StringPropertyCell());
+            otherRegion1.setCellFactory(x -> new StringWithIdCell());
+            otherRegion1.setButtonCell(new StringWithIdCell());
 
             otherRegion2.setItems(App.regionNames);
-            otherRegion2.setCellFactory(x -> new StringPropertyCell());
-            otherRegion2.setButtonCell(new StringPropertyCell());
+            otherRegion2.setCellFactory(x -> new StringWithIdCell());
+            otherRegion2.setButtonCell(new StringWithIdCell());
             
             auctionPrizeTableItemList.setCellFactory(x -> new AuctionPrizeCell());
             
@@ -401,7 +418,7 @@ public class AuctionController {
         App.sysdata.setFile(33, newAuctionPrizeTableDataBytes);
 
 
-        List<AuctionPrizeTable> auctionGrandPrizeTables = App.auctionPrizeTableList;
+        List<AuctionPrizeTable> auctionGrandPrizeTables = App.auctionGrandPrizeTableList;
         ByteBuffer newAuctionGrandPrizeTableDataBytes = ByteBuffer.allocate(auctionGrandPrizeTables.size()*0x20).order(ByteOrder.LITTLE_ENDIAN);
 
         logger.info("Saving Auction Grand Prize Tables");
