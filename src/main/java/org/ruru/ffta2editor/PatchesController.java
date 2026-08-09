@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
+import org.ruru.ffta2editor.Patch.PatchElement;
 import org.ruru.ffta2editor.model.battle.SBN;
 import org.ruru.ffta2editor.model.battle.SBN.Command;
 import org.ruru.ffta2editor.model.unitSst.SstHeaderNode;
@@ -21,7 +22,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ToggleButton;
@@ -63,24 +63,138 @@ public class PatchesController {
 
     private static int[] alwaysOverride = {57, 58, 59, 60, 67};
 
-    private record PatchElement(int address, int originalBytes, int modifiedBytes){};
+    public enum PatchStatus {
+        APPLIED,
+        NOT_APPLIED,
+        MIXED
+    }
 
-    private void applyPatchElements(List<PatchElement> patches, ByteBuffer file, boolean apply) {
+    private static void applyPatchElements(List<PatchElement> patches, ByteBuffer file, boolean apply) {
         if (apply) {
             for (PatchElement patch : patches) {
                 if (file.getInt(patch.address) != patch.originalBytes){
-                    System.err.println(String.format("applyPatchElements: Unexpected instruction (%08x) at %08x in arm9", App.arm9.getInt(patch.address), patch.address));
+                    System.err.println(String.format("applyPatchElements: Unexpected instruction (%08x) at %08x", file.getInt(patch.address), patch.address));
                 }
                 file.putInt(patch.address, patch.modifiedBytes);
             }
         } else {
             for (PatchElement patch : patches) {
                 if (file.getInt(patch.address) != patch.modifiedBytes){
-                    System.err.println(String.format("applyPatchElements: Unexpected instruction (%08x) at %08x in arm9", App.arm9.getInt(patch.address), patch.address));
+                    System.err.println(String.format("applyPatchElements: Unexpected instruction (%08x) at %08x", file.getInt(patch.address), patch.address));
                 }
                 file.putInt(patch.address, patch.originalBytes);
             }
         }
+    }
+
+    private static boolean hasPatchElements(List<PatchElement> patchElements) {
+        return patchElements != null && !patchElements.isEmpty();
+    }
+
+    public static boolean hasSupportedTargets(Patch patch) {
+        if (patch == null) {
+            return false;
+        }
+        return hasPatchElements(patch.getArm9Patches())
+            || hasPatchElements(patch.getOverlay8Patches())
+            || hasPatchElements(patch.getOverlay11Patches());
+    }
+
+    private static PatchStatus checkPatchElementsStatus(List<PatchElement> patchElements, ByteBuffer file) {
+        if (patchElements == null || patchElements.isEmpty() || file == null) {
+            return PatchStatus.NOT_APPLIED;
+        }
+
+        boolean allOriginal = true;
+        boolean allModified = true;
+        for (PatchElement patchElement : patchElements) {
+            int currentValue;
+            try {
+                currentValue = file.getInt(patchElement.address);
+            } catch (Exception e) {
+                return PatchStatus.MIXED;
+            }
+            if (currentValue != patchElement.originalBytes) {
+                allOriginal = false;
+            }
+            if (currentValue != patchElement.modifiedBytes) {
+                allModified = false;
+            }
+        }
+
+        if (allModified) {
+            return PatchStatus.APPLIED;
+        }
+        if (allOriginal) {
+            return PatchStatus.NOT_APPLIED;
+        }
+        return PatchStatus.MIXED;
+    }
+
+    public static PatchStatus checkPatchStatus(Patch patch) {
+        if (!hasSupportedTargets(patch)) {
+            return PatchStatus.MIXED;
+        }
+
+        boolean allApplied = true;
+        boolean allNotApplied = true;
+        List<List<PatchElement>> patchLists = List.of(patch.getArm9Patches(), patch.getOverlay8Patches(), patch.getOverlay11Patches());
+        List<ByteBuffer> patchBuffers = List.of(App.arm9, App.overlay8, App.overlay11);
+        for (int i = 0; i < patchLists.size(); i++) {
+            if (!hasPatchElements(patchLists.get(i))) {
+                continue;
+            }
+            PatchStatus targetStatus = checkPatchElementsStatus(patchLists.get(i), patchBuffers.get(i));
+            if (targetStatus == PatchStatus.MIXED) {
+                return PatchStatus.MIXED;
+            }
+            if (targetStatus != PatchStatus.APPLIED) {
+                allApplied = false;
+            }
+            if (targetStatus != PatchStatus.NOT_APPLIED) {
+                allNotApplied = false;
+            }
+        }
+
+        if (allApplied) {
+            return PatchStatus.APPLIED;
+        }
+        if (allNotApplied) {
+            return PatchStatus.NOT_APPLIED;
+        }
+        return PatchStatus.MIXED;
+    }
+
+    public static boolean canApplyPatch(Patch patch) {
+        if (!hasSupportedTargets(patch)) {
+            return false;
+        }
+        if (hasPatchElements(patch.getArm9Patches()) && App.arm9 == null) {
+            return false;
+        }
+        if (hasPatchElements(patch.getOverlay8Patches()) && App.overlay8 == null) {
+            return false;
+        }
+        if (hasPatchElements(patch.getOverlay11Patches()) && App.overlay11 == null) {
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean applyCustomPatch(Patch patch, boolean apply) {
+        if (!canApplyPatch(patch)) {
+            return false;
+        }
+        if (hasPatchElements(patch.getArm9Patches())) {
+            applyPatchElements(patch.getArm9Patches(), App.arm9, apply);
+        }
+        if (hasPatchElements(patch.getOverlay8Patches())) {
+            applyPatchElements(patch.getOverlay8Patches(), App.overlay8, apply);
+        }
+        if (hasPatchElements(patch.getOverlay11Patches())) {
+            applyPatchElements(patch.getOverlay11Patches(), App.overlay11, apply);
+        }
+        return true;
     }
     //private void revertPatchElements(List<PatchElement> patches) {
     //    for (PatchElement patch : patches) {

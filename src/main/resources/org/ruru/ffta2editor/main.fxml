@@ -155,6 +155,11 @@
                     <fx:include fx:id="patchesTab" source="patches.fxml" />
                 </content>
             </Tab>
+          <Tab closable="false" text="Custom patches">
+                <content>
+                    <fx:include fx:id="customPatchesTab" source="customPatches.fxml" />
+                </content>
+            </Tab>
         </tabs>
       </TabPane>
   </children>

@@ -52,6 +52,9 @@ public class MainController {
     @FXML AnchorPane patchesTab;
     @FXML PatchesController patchesTabController;
 
+    @FXML AnchorPane customPatchesTab;
+    @FXML CustomPatchesController customPatchesTabController;
+
     @FXML AnchorPane spritesTab;
     @FXML SpritesController spritesTabController;
 
@@ -611,6 +614,8 @@ public class MainController {
 
         logger.info("Loading Patches");
         patchesTabController.loadPatches();
+        logger.info("Refreshing custom patch statuses");
+        customPatchesTabController.onRomLoaded();
         logger.info("Loading Text");
         textTabController.loadMessages();
         logger.info("Loading Abilities");
