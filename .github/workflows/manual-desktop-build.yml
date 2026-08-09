@@ -1,0 +1,56 @@
+name: Manual Desktop Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: "Artifact zip name (without .zip)"
+        required: false
+        default: "ffta2-editor-windows"
+
+jobs:
+  build-windows-desktop:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Build runtime image with Maven
+        run: mvn -B -ntp clean compile javafx:jlink
+
+      - name: Build desktop app image
+        run: >
+          jpackage
+          --type app-image
+          --module org.ruru.ffta2editor/org.ruru.ffta2editor.App
+          --name ffta2-editor
+          --runtime-image target/image
+          --dest dist
+
+      - name: Create zip archive
+        shell: pwsh
+        run: |
+          $artifactName = "${{ inputs.artifact_name }}"
+          if ([string]::IsNullOrWhiteSpace($artifactName)) {
+            $artifactName = "ffta2-editor-windows"
+          }
+          $zipPath = "dist/$artifactName.zip"
+          if (Test-Path $zipPath) {
+            Remove-Item $zipPath -Force
+          }
+          Compress-Archive -Path "dist/ffta2-editor/*" -DestinationPath $zipPath
+
+      - name: Upload desktop zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-build-zip
+          path: dist/*.zip
+          if-no-files-found: error
