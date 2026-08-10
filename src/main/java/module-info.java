@@ -9,7 +9,6 @@ module org.ruru.ffta2editor {
     requires org.yaml.snakeyaml;
 
     opens org.ruru.ffta2editor to javafx.fxml;
-    opens org.ruru.ffta2editor to org.yaml.snakeyaml;
     exports org.ruru.ffta2editor;
     exports org.ruru.ffta2editor.utility;
 }
