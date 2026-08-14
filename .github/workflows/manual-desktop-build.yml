@@ -6,7 +6,7 @@ on:
       artifact_name:
         description: "Artifact zip name (without .zip)"
         required: false
-        default: "ffta2-editor-windows"
+        default: "ffta2-editor"
 
 jobs:
   build-windows-desktop:
@@ -35,22 +35,9 @@ jobs:
           --runtime-image target/image
           --dest dist
 
-      - name: Create zip archive
-        shell: pwsh
-        run: |
-          $artifactName = "${{ inputs.artifact_name }}"
-          if ([string]::IsNullOrWhiteSpace($artifactName)) {
-            $artifactName = "ffta2-editor-windows"
-          }
-          $zipPath = "dist/$artifactName.zip"
-          if (Test-Path $zipPath) {
-            Remove-Item $zipPath -Force
-          }
-          Compress-Archive -Path "dist/ffta2-editor/*" -DestinationPath $zipPath
-
-      - name: Upload desktop zip artifact
+      - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-build-zip
-          path: dist/*.zip
+          name: ${{ inputs.artifact_name }}
+          path: dist/ffta2-editor/**
           if-no-files-found: error
