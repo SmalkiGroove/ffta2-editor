@@ -94,7 +94,7 @@ public class Patch {
                 return number.intValue();
             }
             if (value instanceof String text) {
-                return (int) Long.decode(text.trim());
+                return Long.decode(text.trim()).intValue();
             }
             throw new IllegalArgumentException("Expected hex string or number, got: " + value);
         }
