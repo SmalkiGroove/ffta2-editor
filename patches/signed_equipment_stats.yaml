@@ -1,0 +1,476 @@
+title: "Signed Equipment Stats"
+description: "Allows equipment to have negative stats (signed byte loads)."
+arm9Patches:
+  - address: 0x000b9b10
+    originalBytes: 0xe5d40019
+    modifiedBytes: 0xe1d401d9
+  - address: 0x000cfd28
+    originalBytes: 0xe5d01019
+    modifiedBytes: 0xe1d011d9
+  - address: 0x00110724
+    originalBytes: 0xe5d41019
+    modifiedBytes: 0xe1d411d9
+  - address: 0x00110728
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x0011072c
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x0011073c
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00110764
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00110f14
+    originalBytes: 0xe5d41019
+    modifiedBytes: 0xe1d411d9
+  - address: 0x00110f18
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00110f1c
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00110f24
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00110f54
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111b30
+    originalBytes: 0xe5d41019
+    modifiedBytes: 0xe1d411d9
+  - address: 0x00111b34
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111b38
+    originalBytes: 0x0a000013
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111b48
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111b70
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9b20
+    originalBytes: 0xe5d4001a
+    modifiedBytes: 0xe1d401da
+  - address: 0x000cfd50
+    originalBytes: 0xe5d0101a
+    modifiedBytes: 0xe1d011da
+  - address: 0x00110770
+    originalBytes: 0xe5d4101a
+    modifiedBytes: 0xe1d411da
+  - address: 0x00110774
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00110778
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00110788
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x001107b0
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00110f60
+    originalBytes: 0xe5d4101a
+    modifiedBytes: 0xe1d411da
+  - address: 0x00110f64
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00110f68
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00110f70
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00110fa0
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111b8c
+    originalBytes: 0xe5d4101a
+    modifiedBytes: 0xe1d411da
+  - address: 0x00111b90
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111b94
+    originalBytes: 0x0a000013
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111ba4
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111bcc
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9b04
+    originalBytes: 0x05d40018
+    modifiedBytes: 0x01d401d8
+  - address: 0x000cfd00
+    originalBytes: 0xe5d01018
+    modifiedBytes: 0xe1d011d8
+  - address: 0x001107bc
+    originalBytes: 0xe5d41018
+    modifiedBytes: 0xe1d411d8
+  - address: 0x001107c0
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x001107c4
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x001107d4
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x001107fc
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00110fac
+    originalBytes: 0xe5d41018
+    modifiedBytes: 0xe1d411d8
+  - address: 0x00110fb0
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00110fb4
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00110fbc
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00110fec
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111be8
+    originalBytes: 0xe5d41018
+    modifiedBytes: 0xe1d411d8
+  - address: 0x00111bec
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111bf0
+    originalBytes: 0x0a000013
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111c00
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111c28
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9b30
+    originalBytes: 0xe5d40017
+    modifiedBytes: 0xe1d401d7
+  - address: 0x000cfcd8
+    originalBytes: 0xe5d01017
+    modifiedBytes: 0xe1d011d7
+  - address: 0x00110808
+    originalBytes: 0xe5d41017
+    modifiedBytes: 0xe1d411d7
+  - address: 0x0011080c
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00110810
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00110820
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00110848
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00110ff8
+    originalBytes: 0xe5d41017
+    modifiedBytes: 0xe1d411d7
+  - address: 0x00110ffc
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111000
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111008
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111038
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111c44
+    originalBytes: 0xe5d41017
+    modifiedBytes: 0xe1d411d7
+  - address: 0x00111c48
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111c4c
+    originalBytes: 0x0a000013
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111c5c
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111c84
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9b54
+    originalBytes: 0xe5d41013
+    modifiedBytes: 0xe1d411d3
+  - address: 0x000cfc38
+    originalBytes: 0xe5d01013
+    modifiedBytes: 0xe1d011d3
+  - address: 0x00110854
+    originalBytes: 0xe5d41013
+    modifiedBytes: 0xe1d411d3
+  - address: 0x00110858
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x0011085c
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x0011086c
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00110894
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111048
+    originalBytes: 0xe5d45013
+    modifiedBytes: 0xe1d451d3
+  - address: 0x0011106c
+    originalBytes: 0xe3550000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111070
+    originalBytes: 0xda000010
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111078
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x001110ac
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111ca4
+    originalBytes: 0xe5d45013
+    modifiedBytes: 0xe1d451d3
+  - address: 0x00111cc8
+    originalBytes: 0xe3550000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111ccc
+    originalBytes: 0xda000014
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111cdc
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111d08
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9b98
+    originalBytes: 0xe5d40014
+    modifiedBytes: 0xe1d401d4
+  - address: 0x000cfc60
+    originalBytes: 0xe5d01014
+    modifiedBytes: 0xe1d011d4
+  - address: 0x001108a0
+    originalBytes: 0xe5d41014
+    modifiedBytes: 0xe1d411d4
+  - address: 0x001108a4
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x001108a8
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x001108b8
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x001108e0
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x001110c4
+    originalBytes: 0xe5d45014
+    modifiedBytes: 0xe1d451d4
+  - address: 0x001110e4
+    originalBytes: 0xe3550000
+    modifiedBytes: 0xe3a00000
+  - address: 0x001110e8
+    originalBytes: 0xda000010
+    modifiedBytes: 0xe58d0018
+  - address: 0x001110f0
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111124
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111d30
+    originalBytes: 0xe5d45014
+    modifiedBytes: 0xe1d451d4
+  - address: 0x00111d50
+    originalBytes: 0xe3550000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111d54
+    originalBytes: 0xda000014
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111d64
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111d90
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9ba8
+    originalBytes: 0xe5d40015
+    modifiedBytes: 0xe1d401d5
+  - address: 0x000cfc88
+    originalBytes: 0xe5d01015
+    modifiedBytes: 0xe1d011d5
+  - address: 0x001108ec
+    originalBytes: 0xe5d41015
+    modifiedBytes: 0xe1d411d5
+  - address: 0x001108f0
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x001108f4
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00110904
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x0011092c
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111130
+    originalBytes: 0xe5d41015
+    modifiedBytes: 0xe1d411d5
+  - address: 0x00111134
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111138
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111140
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111170
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111dac
+    originalBytes: 0xe5d41015
+    modifiedBytes: 0xe1d411d5
+  - address: 0x00111db0
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111db4
+    originalBytes: 0x0a000013
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111dc4
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111dec
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9bb8
+    originalBytes: 0xe5d40016
+    modifiedBytes: 0xe1d401d6
+  - address: 0x000cfcb0
+    originalBytes: 0xe5d01016
+    modifiedBytes: 0xe1d011d6
+  - address: 0x00110938
+    originalBytes: 0xe5d41016
+    modifiedBytes: 0xe1d411d6
+  - address: 0x0011093c
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00110940
+    originalBytes: 0x0a000220
+    modifiedBytes: 0xe58d0018
+  - address: 0x00110950
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00110978
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x0011117c
+    originalBytes: 0xe5d41016
+    modifiedBytes: 0xe1d411d6
+  - address: 0x00111180
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111184
+    originalBytes: 0x0a00000f
+    modifiedBytes: 0xe58d0018
+  - address: 0x0011118c
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x001111bc
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x00111e08
+    originalBytes: 0xe5d41016
+    modifiedBytes: 0xe1d411d6
+  - address: 0x00111e0c
+    originalBytes: 0xe3510000
+    modifiedBytes: 0xe3a00000
+  - address: 0x00111e10
+    originalBytes: 0x0a000013
+    modifiedBytes: 0xe58d0018
+  - address: 0x00111e20
+    originalBytes: 0xe3a00000
+    modifiedBytes: 0xe1a00000
+  - address: 0x00111e48
+    originalBytes: 0xe58d0018
+    modifiedBytes: 0xe3a00001
+  - address: 0x000b9a04
+    originalBytes: 0xea00000c
+    modifiedBytes: 0xea000015
+  - address: 0x000b9a08
+    originalBytes: 0xea00000e
+    modifiedBytes: 0xea000014
+  - address: 0x000b9a0c
+    originalBytes: 0xea000010
+    modifiedBytes: 0xea000013
+  - address: 0x000b9d08
+    originalBytes: 0xe1570006
+    modifiedBytes: 0xebffff4b
+  - address: 0x000b9a3c
+    originalBytes: 0xe59d0004
+    modifiedBytes: 0xe3570001
+  - address: 0x000b9a40
+    originalBytes: 0xe2606ffa
+    modifiedBytes: 0xb3a07001
+  - address: 0x000b9a44
+    originalBytes: 0xea000007
+    modifiedBytes: 0xe1570006
+  - address: 0x000b9a48
+    originalBytes: 0xe59d0004
+    modifiedBytes: 0xe1a0f00e
+  - address: 0x000b9ce4
+    originalBytes: 0xe1570006
+    modifiedBytes: 0xebffff58
+  - address: 0x000b9a4c
+    originalBytes: 0xe2606ffa
+    modifiedBytes: 0xe3570000
+  - address: 0x000b9a50
+    originalBytes: 0xea000004
+    modifiedBytes: 0xb3a07000
+  - address: 0x000b9a54
+    originalBytes: 0xe59d0004
+    modifiedBytes: 0xe1570006
+  - address: 0x000b9a58
+    originalBytes: 0xe2606ffa
+    modifiedBytes: 0xe1a0f00e
+  - address: 0x000b9cb4
+    originalBytes: 0xe1570006
+    modifiedBytes: 0xebffff60
+overlay8Patches: []
+overlay11Patches:
+  - address: 0xe2a8
+    originalBytes: 0xe5d07018
+    modifiedBytes: 0xe1d071d8
+  - address: 0xe260
+    originalBytes: 0xe5d07013
+    modifiedBytes: 0xe1d071d3
+  - address: 0xe2ac
+    originalBytes: 0xe5d08014
+    modifiedBytes: 0xe1d081d4
+  - address: 0xe2ec
+    originalBytes: 0xe5d07014
+    modifiedBytes: 0xe1d071d4
+  - address: 0xe264
+    originalBytes: 0xe5d08015
+    modifiedBytes: 0xe1d081d5
+  - address: 0xe2b0
+    originalBytes: 0xe5d00016
+    modifiedBytes: 0xe1d001d6
+  - address: 0xe2f0
+    originalBytes: 0xe5d08016
+    modifiedBytes: 0xe1d081d6

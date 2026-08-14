@@ -1,0 +1,20 @@
+title: "Expand Top Sprites"
+description: "This patch expands the top sprites to 16 bits."
+arm9Patches:
+  - address: 0x000b5ab4
+    originalBytes: 0xe5d00018
+    modifiedBytes: 0xe1d001b8
+  - address: 0x000b5abc
+    originalBytes: 0xe5d00019
+    modifiedBytes: 0xe1d001ba
+  - address: 0x000b5e20
+    originalBytes: 0xe5d0003f
+    modifiedBytes: 0xe1d003bc
+  - address: 0x000b5e28
+    originalBytes: 0xe5d00040
+    modifiedBytes: 0xe1d003be
+  - address: 0x000b5e78
+    originalBytes: 0xe5d0003e
+    modifiedBytes: 0xe5d00040
+overlay8Patches: []
+overlay11Patches: []

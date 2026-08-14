@@ -1,0 +1,8 @@
+title: "All Consumables Buyable"
+description: "Disables hardcoded unbuyable restrictions on some consumables."
+arm9Patches:
+  - address: 0x00108484
+    originalBytes: 0xe59f1058
+    modifiedBytes: 0xea00000a
+overlay8Patches: []
+overlay11Patches: []
