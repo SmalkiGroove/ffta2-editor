@@ -35,6 +35,14 @@ jobs:
           --runtime-image target/image
           --dest dist
 
+      - name: Include custom patches in app image
+        shell: pwsh
+        run: |
+          $dest = "dist/ffta2-editor/custom-patches"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item -Path "patches/*.yaml" -Destination $dest -Force
+          Get-ChildItem $dest | ForEach-Object { $_.Name }
+
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
