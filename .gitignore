@@ -30,5 +30,6 @@ data/*
 vanilla/*
 ffta2-editor/*
 .vscode/*
+.idea/*
 logs/*
 *.nds*/*
