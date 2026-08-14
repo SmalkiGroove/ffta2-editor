@@ -59,9 +59,11 @@ public class Patch {
     }
 
     public static class PatchElement {
-        public int address;
-        public int originalBytes;
-        public int modifiedBytes;
+        // Package-private so PatchesController can use fields, while SnakeYAML
+        // uses the Object setters (public fields would be bound as int and reject hex).
+        int address;
+        int originalBytes;
+        int modifiedBytes;
 
         public PatchElement() {
         }
@@ -72,28 +74,29 @@ public class Patch {
             this.modifiedBytes = modifiedBytes;
         }
 
-        public int getAddress() {
-            return address;
+        // SnakeYAML setters: accept hex strings or numeric values, store as int32 words.
+        // Getters intentionally omitted so SnakeYAML does not treat these as int properties
+        // (hex like 0xe59f1058 does not fit in Integer during YAML construction).
+        public void setAddress(Object address) {
+            this.address = parseWord(address);
         }
 
-        public void setAddress(int address) {
-            this.address = address;
+        public void setOriginalBytes(Object originalBytes) {
+            this.originalBytes = parseWord(originalBytes);
         }
 
-        public int getOriginalBytes() {
-            return originalBytes;
+        public void setModifiedBytes(Object modifiedBytes) {
+            this.modifiedBytes = parseWord(modifiedBytes);
         }
 
-        public void setOriginalBytes(int originalBytes) {
-            this.originalBytes = originalBytes;
-        }
-
-        public int getModifiedBytes() {
-            return modifiedBytes;
-        }
-
-        public void setModifiedBytes(int modifiedBytes) {
-            this.modifiedBytes = modifiedBytes;
+        private static int parseWord(Object value) {
+            if (value instanceof Number number) {
+                return number.intValue();
+            }
+            if (value instanceof String text) {
+                return (int) Long.decode(text.trim());
+            }
+            throw new IllegalArgumentException("Expected hex string or number, got: " + value);
         }
     }
 }

@@ -1,29 +1,29 @@
 title: "Disable Sequencer and Peytral Stat Growth"
 description: "Disables Sequencer and Peytral equipment-driven stat growth."
 arm9Patches:
-  - address: 0x000b9b40
-    originalBytes: 0xe358003f
-    modifiedBytes: 0xea000003
-  - address: 0x00111050
-    originalBytes: 0xe350003f
-    modifiedBytes: 0xea000005
-  - address: 0x00111cac
-    originalBytes: 0xe350003f
-    modifiedBytes: 0xea000005
-  - address: 0x000b9b84
-    originalBytes: 0xe1580000
-    modifiedBytes: 0xea000003
-  - address: 0x001110c8
-    originalBytes: 0xe1510000
-    modifiedBytes: 0xea000005
-  - address: 0x00111d34
-    originalBytes: 0xe1510000
-    modifiedBytes: 0xea000005
+  - address: "0x000b9b40"
+    originalBytes: "0xe358003f"
+    modifiedBytes: "0xea000003"
+  - address: "0x00111050"
+    originalBytes: "0xe350003f"
+    modifiedBytes: "0xea000005"
+  - address: "0x00111cac"
+    originalBytes: "0xe350003f"
+    modifiedBytes: "0xea000005"
+  - address: "0x000b9b84"
+    originalBytes: "0xe1580000"
+    modifiedBytes: "0xea000003"
+  - address: "0x001110c8"
+    originalBytes: "0xe1510000"
+    modifiedBytes: "0xea000005"
+  - address: "0x00111d34"
+    originalBytes: "0xe1510000"
+    modifiedBytes: "0xea000005"
 overlay8Patches: []
 overlay11Patches:
-  - address: 0x0000e26c
-    originalBytes: 0xe350003f
-    modifiedBytes: 0xea000003
-  - address: 0x0000e2fc
-    originalBytes: 0xe1510000
-    modifiedBytes: 0xea000003
+  - address: "0x0000e26c"
+    originalBytes: "0xe350003f"
+    modifiedBytes: "0xea000003"
+  - address: "0x0000e2fc"
+    originalBytes: "0xe1510000"
+    modifiedBytes: "0xea000003"

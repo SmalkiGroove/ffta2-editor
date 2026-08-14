@@ -1,14 +1,14 @@
 title: "Units Start With Max MP"
 description: "Units start battles with maximum MP instead of 0."
 arm9Patches:
-  - address: 0x000b9180
-    originalBytes: 0xe3a01000
-    modifiedBytes: 0xe1c403b8
-  - address: 0x000b918c
-    originalBytes: 0xe1c413b8
-    modifiedBytes: 0xe3a01000
-  - address: 0x000bac44
-    originalBytes: 0xe3a00000
-    modifiedBytes: 0xe1d503ba
+  - address: "0x000b9180"
+    originalBytes: "0xe3a01000"
+    modifiedBytes: "0xe1c403b8"
+  - address: "0x000b918c"
+    originalBytes: "0xe1c413b8"
+    modifiedBytes: "0xe3a01000"
+  - address: "0x000bac44"
+    originalBytes: "0xe3a00000"
+    modifiedBytes: "0xe1d503ba"
 overlay8Patches: []
 overlay11Patches: []
