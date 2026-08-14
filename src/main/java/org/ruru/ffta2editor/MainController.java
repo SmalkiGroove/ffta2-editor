@@ -40,7 +40,6 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.MenuItem;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.util.Pair;
@@ -53,7 +52,7 @@ public class MainController {
     @FXML AnchorPane patchesTab;
     @FXML PatchesController patchesTabController;
 
-    @FXML VBox customPatchesTab;
+    @FXML AnchorPane customPatchesTab;
     @FXML CustomPatchesController customPatchesTabController;
 
     @FXML AnchorPane spritesTab;
