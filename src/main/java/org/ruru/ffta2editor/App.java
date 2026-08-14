@@ -167,11 +167,23 @@ public class App extends Application {
         }
     }
 
+    private static void initializeDefaultConfig() {
+        String userDir = System.getProperty("user.dir");
+        config.setProperty("lastRomPath", userDir);
+        config.setProperty("lastFilePath", userDir);
+        if (editorVersion != null) {
+            config.setProperty("editorVersion", editorVersion);
+        }
+        saveConfig();
+        logger.info("Created default config at " + configPath.toAbsolutePath());
+    }
+
     private static void loadConfig() {
         try (FileInputStream fs = new FileInputStream(configPath.toFile())){
             config.load(fs);
         } catch (FileNotFoundException e) {
-            logger.log(Level.INFO, "Config not found", e);
+            logger.info("Config not found, initializing defaults");
+            initializeDefaultConfig();
             return;
         } catch (IOException e) {
             logger.log(Level.WARNING, "Failed to load config", e);
@@ -183,7 +195,11 @@ public class App extends Application {
             // Pre-1.3.4
             // Rename lastPath to lastRomPath
             String lastPath = config.getProperty("lastPath");
-            config.setProperty("lastRomPath", lastPath);
+            if (lastPath != null) {
+                config.setProperty("lastRomPath", lastPath);
+            } else {
+                config.setProperty("lastRomPath", System.getProperty("user.dir"));
+            }
             config.remove("lastPath");
         } else if (lastVersion != editorVersion) {
             
